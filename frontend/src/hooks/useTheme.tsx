@@ -1,4 +1,7 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useState, useLayoutEffect, type ReactNode } from 'react'
+import { ThemeProvider as MuiThemeProvider, type Theme } from '@mui/material/styles'
+import CssBaseline from '@mui/material/CssBaseline'
+import { buildMuiTheme } from '../theme/muiTheme'
 
 export type ThemeId = 'ai' | 'hermes-official' | 'blade-runner' | 'fsociety' | 'anime'
 
@@ -31,6 +34,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [scanlines, setScanlinesState] = useState(() => {
     return localStorage.getItem('hud-scanlines') === 'true'
   })
+  const [muiTheme, setMuiTheme] = useState<Theme>(() => buildMuiTheme())
 
   const setTheme = (t: ThemeId) => {
     setThemeState(t)
@@ -42,15 +46,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('hud-scanlines', String(s))
   }
 
-  useEffect(() => {
+  // Apply data-theme attribute BEFORE MUI theme reads the CSS vars
+  useLayoutEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
+    // After a tick for CSS to apply, rebuild MUI from the new vars
+    requestAnimationFrame(() => {
+      setMuiTheme(buildMuiTheme())
+    })
   }, [theme])
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, scanlines, setScanlines }}>
-      <div className={scanlines ? 'scanlines' : ''} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        {children}
-      </div>
+      <MuiThemeProvider theme={muiTheme}>
+        <CssBaseline enableColorScheme />
+        <div className={scanlines ? 'scanlines' : ''} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {children}
+        </div>
+      </MuiThemeProvider>
     </ThemeContext.Provider>
   )
 }

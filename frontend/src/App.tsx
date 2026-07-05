@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { ThemeProvider } from './hooks/useTheme'
 import { useWebSocket } from './hooks/useWebSocket'
 import { TABS, type TabId } from './routes'
-import TopBar from './components/TopBar'
+import NavShell from './components/NavShell'
 import CommandPalette from './components/CommandPalette'
 import BootScreen from './components/BootScreen'
 import DashboardPanel from './components/DashboardPanel'
@@ -144,7 +144,7 @@ export default function App() {
         onSelect={handleCommandSelect}
       />
 
-      <TopBar activeTab={activeTab} onTabChange={handleTabChange} />
+      <NavShell activeTab={activeTab} onTabChange={handleTabChange} />
 
       {/* Chat tab gets a fixed-height flex container so the message
           thread scrolls internally instead of page-scrolling. */}
