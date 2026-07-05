@@ -12,6 +12,7 @@ def collect_billing() -> dict:
     hermes_dir = Path(default_hermes_dir())
     billing_file = hermes_dir / "state" / "provider-billing.json"
     balance_file = hermes_dir / "state" / "provider-balances.json"
+    scraped_file = hermes_dir / "state" / "provider-scraped.json"
 
     # ── Load receipts (from Gmail scanner) ──
     receipt_data = {}
@@ -30,6 +31,15 @@ def collect_billing() -> dict:
                 raw = json.load(f)
                 for b in raw.get("balances", []):
                     balance_data[b["provider"]] = b
+        except (json.JSONDecodeError, KeyError):
+            pass
+
+    # ── Load scraped data (from Playwright scraper, console-only providers) ──
+    scraped_data = {}
+    if scraped_file.exists():
+        try:
+            with open(scraped_file) as f:
+                scraped_data = json.load(f).get("providers", {})
         except (json.JSONDecodeError, KeyError):
             pass
 
@@ -87,32 +97,57 @@ def collect_billing() -> dict:
         # API balance
         bd = balance_data.get(display) or balance_data.get(key)
         if bd and not bd.get("error"):
-            entry["api_balance"] = bd.get("total_balance") or bd.get("daily_cost_usd")
+            bal = bd.get("total_balance")
+            if bal is None:
+                bal = bd.get("daily_cost_usd")
+            # Leave api_balance None for usage-billed providers (e.g. gemini) that
+            # report token usage instead of a prepaid balance — avoids a misleading $0.00.
+            entry["api_balance"] = bal
             entry["api_currency"] = bd.get("currency", "USD")
             entry["api_is_available"] = bd.get("is_available")
+            entry["has_data"] = True
+            # Pass through optional usage / credit fields for the Costs tab to render.
+            for f in (
+                "usage_output_tokens_30d", "usage_by_model_30d", "usage_unit",
+                "remaining_credits", "plan_credits", "used_credits",
+                "billing_period_end", "daily_cost_usd",
+            ):
+                if bd.get(f) is not None:
+                    entry[f] = bd[f]
+
+        # Scraped data (console-only providers, no API — populated once logged in)
+        sc = scraped_data.get(key)
+        if sc and not sc.get("error") and sc.get("value") is not None:
+            entry["scraped_credits"] = sc.get("value")
+            entry["scraped_currency"] = sc.get("currency")
+            entry["scraped_unit"] = sc.get("unit")
+            entry["scraped_url"] = sc.get("url")
+            entry["scraped_date"] = sc.get("scraped_at")
             entry["has_data"] = True
 
         providers[key] = entry
 
     # ── Mark iframe-only / console URLs ──
+    # Google SSO providers redirect via window.top.location — impossible inside sandboxed iframe.
     CONSOLE_URLS = {
-        "gemini": "https://console.cloud.google.com/billing",
-        "firecrawl": "https://www.firecrawl.dev/app",
-        "kimi": "https://platform.moonshot.ai",
-        "zai-glm": "https://open.bigmodel.cn",
-        "minimax": "https://platform.minimax.io",
-        "novita": "https://novita.ai",
-        "xai": "https://console.x.ai",
-        "nvidia": "https://build.nvidia.com",
-        "krea": "https://www.krea.ai",
-        "fal": "https://fal.ai/dashboard",
-        "stepfun": "https://platform.stepfun.ai",
-        "arcee": "https://app.arcee.ai",
-        "mistral": "https://console.mistral.ai",
+        "gemini":     ("https://console.cloud.google.com/billing",           True),
+        "firecrawl":  ("https://www.firecrawl.dev/app/usage",               True),
+        "kimi":       ("https://platform.moonshot.ai/console/billing/overview", True),
+        "minimax":    ("https://platform.minimax.io/console/usage",          True),
+        "zai-glm":    ("https://open.bigmodel.cn/usercenter/billing",       False),
+        "novita":     ("https://novita.ai/dashboard/billing",               False),
+        "xai":        ("https://console.x.ai/usage",                        False),
+        "nvidia":     ("https://build.nvidia.com/explore/discover#billing", False),
+        "krea":       ("https://www.krea.ai/settings/billing",              False),
+        "fal":        ("https://fal.ai/dashboard/billing",                  False),
+        "stepfun":    ("https://platform.stepfun.ai/user/billing",          False),
+        "arcee":     ("https://app.arcee.ai/billing",                      False),
+        "mistral":    ("https://console.mistral.ai/billing/overview",       False),
     }
-    for key, url in CONSOLE_URLS.items():
+    for key, (url, blocked) in CONSOLE_URLS.items():
         if key in providers:
             providers[key]["iframe_url"] = url
+            providers[key]["iframe_blocked"] = blocked
 
     return {
         "updated_at": datetime.now().isoformat(),

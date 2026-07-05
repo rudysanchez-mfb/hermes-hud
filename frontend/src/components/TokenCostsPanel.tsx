@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { useApi } from '../hooks/useApi'
 import Panel, { Sparkline } from './Panel'
@@ -16,6 +16,40 @@ function StatCard({ value, label }: { value: string | number; label: string }) {
 
 function money(value: number | null | undefined) {
   return `$${(value || 0).toFixed(2)}`
+}
+
+// Currency-aware amount (handles USD, CNY, and non-monetary units).
+function amount(value: number | null | undefined, currency?: string | null) {
+  const v = value || 0
+  if (currency === 'CNY') return `¥${v.toFixed(2)}`
+  if (!currency || currency === 'USD') return `$${v.toFixed(2)}`
+  return `${v.toFixed(2)} ${currency}`
+}
+
+// Classify what kind of "balance/usage" number a provider exposes.
+function balanceKind(bp: any): 'usage' | 'credits' | 'balance' | 'scraped' | 'none' {
+  if (bp.usage_unit === 'output_tokens' && bp.usage_output_tokens_30d != null) return 'usage'
+  if (bp.usage_unit === 'credits' || bp.api_currency === 'credits') return 'credits'
+  if (bp.api_balance != null) return 'balance'
+  if (bp.scraped_credits != null) return 'scraped'
+  return 'none'
+}
+
+// Render a scraped figure (currency or credits/tokens) as a short string.
+function scrapedLabel(bp: any) {
+  if (bp.scraped_unit === 'currency') return amount(bp.scraped_credits, bp.scraped_currency)
+  return `${bp.scraped_credits} ${bp.scraped_unit || 'cr'}`
+}
+
+// A slim used/total bar for credit-based providers.
+function CreditBar({ used, total }: { used: number; total: number }) {
+  const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0
+  const tone = pct >= 90 ? 'var(--hud-warning)' : 'var(--hud-accent)'
+  return (
+    <div className="w-full h-1.5 mt-1" style={{ background: 'var(--hud-bg-hover)', borderRadius: 2 }}>
+      <div style={{ width: `${pct}%`, height: '100%', background: tone, borderRadius: 2 }} />
+    </div>
+  )
 }
 
 function DeltaBadge({ value, pct }: { value: number; pct?: number | null }) {
@@ -93,6 +127,10 @@ export default function TokenCostsPanel() {
   const { data: billingData } = useApi('/billing', 60000)
   const [expandedIframe, setExpandedIframe] = useState<string | null>(null)
 
+  const toggleIframe = useCallback((key: string) => {
+    setExpandedIframe((prev) => (prev === key ? null : key))
+  }, [])
+
   // Only show loading on initial load
   if (isLoading && !data) {
     return <Panel title={t('tokenCosts.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('tokenCosts.loading')}</div></Panel>
@@ -166,8 +204,23 @@ export default function TokenCostsPanel() {
                     const bal = bp.api_balance
                     const delta = actual - est
                     const iframeUrl = bp.iframe_url || null
-                    if (est > 0 || actual > 0 || bal != null || iframeUrl) {
-                      rows.push({ key, display: bp.display, est, actual, bal, delta, currency: bp.api_currency, iframeUrl })
+                    const kind = balanceKind(bp)
+                    const hasData = kind !== 'none'
+                    const hasExpand = !!(iframeUrl || hasData)
+                    if (est > 0 || actual > 0 || hasData || iframeUrl) {
+                      rows.push({
+                        key, display: bp.display, est, actual, bal, delta,
+                        currency: bp.api_currency, iframeUrl, kind, hasData, hasExpand,
+                        usageTokens: bp.usage_output_tokens_30d,
+                        usageByModel: bp.usage_by_model_30d,
+                        remainingCredits: bp.remaining_credits,
+                        planCredits: bp.plan_credits,
+                        usedCredits: bp.used_credits,
+                        billingPeriodEnd: bp.billing_period_end,
+                        scrapedLabel: bp.scraped_credits != null ? scrapedLabel(bp) : null,
+                        scrapedDate: bp.scraped_date,
+                        scrapedUrl: bp.scraped_url,
+                      })
                     }
                   }
                   rows.sort((a, b) => (b.actual || b.est) - (a.actual || a.est))
@@ -179,9 +232,9 @@ export default function TokenCostsPanel() {
                     <React.Fragment key={r.key}>
                       <tr style={{ borderBottom: '1px solid var(--hud-border)' }}>
                         <td className="py-2 pr-3">
-                          <span style={{ color: 'var(--hud-primary)', cursor: r.iframeUrl ? 'pointer' : 'default' }}
-                                onClick={() => r.iframeUrl && setExpandedIframe(isExpanded ? null : r.key)}>
-                            {r.iframeUrl && <span className="mr-1" style={{ fontSize: '10px', color: 'var(--hud-accent)' }}>{isExpanded ? '▼' : '▶'}</span>}
+                          <span style={{ color: 'var(--hud-primary)', cursor: r.hasExpand ? 'pointer' : 'default' }}
+                                onClick={() => r.hasExpand && toggleIframe(r.key)}>
+                            {r.hasExpand && <span className="mr-1" style={{ fontSize: '10px', color: 'var(--hud-accent)' }}>{isExpanded ? '▼' : '▶'}</span>}
                             {r.display || r.key}
                           </span>
                           {r.iframeUrl && !isExpanded && (
@@ -192,16 +245,83 @@ export default function TokenCostsPanel() {
                         </td>
                         <td className="py-2 pr-3 text-right">{money(r.est)}</td>
                         <td className="py-2 pr-3 text-right" style={{ color: r.actual > 0 ? 'var(--hud-accent)' : 'var(--hud-text-dim)' }}>{r.actual > 0 ? money(r.actual) : '—'}</td>
-                        <td className="py-2 pr-3 text-right" style={{ color: r.bal ? 'var(--hud-success)' : 'var(--hud-text-dim)' }}>{r.bal != null ? `${money(r.bal)}` : '—'}</td>
+                        <td className="py-2 pr-3 text-right" style={{ color: r.hasData ? 'var(--hud-success)' : 'var(--hud-text-dim)' }}>
+                          {r.kind === 'usage'
+                            ? <span>{formatTokens(r.usageTokens)} <span style={{ color: 'var(--hud-text-dim)', fontSize: '11px' }}>tok/30d</span></span>
+                            : r.kind === 'credits'
+                            ? <span>{r.remainingCredits}<span style={{ color: 'var(--hud-text-dim)' }}>/{r.planCredits}</span> <span style={{ color: 'var(--hud-text-dim)', fontSize: '11px' }}>cr</span></span>
+                            : r.kind === 'balance'
+                            ? amount(r.bal, r.currency)
+                            : r.kind === 'scraped'
+                            ? <span>{r.scrapedLabel} <span style={{ color: 'var(--hud-text-dim)', fontSize: '11px' }}>scraped</span></span>
+                            : '—'}
+                        </td>
                         <td className="py-2 text-right">{r.actual > 0 && r.est > 0 ? <DeltaBadge value={r.delta} /> : '—'}</td>
                       </tr>
-                      {isExpanded && r.iframeUrl && (
-                        <tr key={`${r.key}-iframe`}>
-                          <td colSpan={5} className="p-0">
-                            <iframe src={r.iframeUrl}
-                                    style={{ width: '100%', height: '500px', border: '1px solid var(--hud-border)' }}
-                                    sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-                                    title={`${r.display} console`} />
+                      {isExpanded && r.hasExpand && (
+                        <tr key={`${r.key}-detail`}>
+                          <td colSpan={5} className="p-3" style={{ background: 'var(--hud-bg-panel)', border: '1px solid var(--hud-border)' }}>
+                            {r.kind === 'usage' && (
+                              <div className="text-[13px] space-y-1">
+                                <div className="flex justify-between">
+                                  <span style={{ color: 'var(--hud-text-dim)' }}>Output tokens (30d)</span>
+                                  <span className="font-bold" style={{ color: 'var(--hud-accent)' }}>{(r.usageTokens || 0).toLocaleString()}</span>
+                                </div>
+                                {r.usageByModel && (
+                                  <div className="mt-2 pt-2 space-y-0.5" style={{ borderTop: '1px solid var(--hud-border)' }}>
+                                    <div className="uppercase tracking-wider mb-1" style={{ color: 'var(--hud-text-dim)', fontSize: '11px' }}>By model</div>
+                                    {Object.entries(r.usageByModel).slice(0, 8).map(([model, tok]: any) => (
+                                      <DetailRow key={model} label={model} value={<span style={{ color: 'var(--hud-primary)' }}>{formatTokens(tok)}</span>} />
+                                    ))}
+                                  </div>
+                                )}
+                                <div className="pt-1" style={{ color: 'var(--hud-text-dim)' }}>Usage-billed · pulled from Cloud Monitoring {r.iframeUrl && (<>· <a href={r.iframeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hud-accent)' }}>billing console ↗</a></>)}</div>
+                              </div>
+                            )}
+                            {r.kind === 'credits' && (
+                              <div className="text-[13px] space-y-1">
+                                <div className="flex justify-between">
+                                  <span style={{ color: 'var(--hud-text-dim)' }}>Credits used</span>
+                                  <span className="font-bold" style={{ color: 'var(--hud-accent)' }}>{r.usedCredits} / {r.planCredits}</span>
+                                </div>
+                                <CreditBar used={r.usedCredits || 0} total={r.planCredits || 0} />
+                                <div className="flex justify-between pt-1">
+                                  <span style={{ color: 'var(--hud-text-dim)' }}>Remaining</span>
+                                  <span style={{ color: 'var(--hud-success)' }}>{r.remainingCredits} credits</span>
+                                </div>
+                                {r.billingPeriodEnd && <DetailRow label="Period ends" value={r.billingPeriodEnd.slice(0, 10)} />}
+                                <div className="pt-1" style={{ color: 'var(--hud-text-dim)' }}>Pulled from {r.display} API {r.iframeUrl && (<>· <a href={r.iframeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hud-accent)' }}>open console ↗</a></>)}</div>
+                              </div>
+                            )}
+                            {r.kind === 'balance' && (
+                              <div className="text-[13px] space-y-1">
+                                <div className="flex justify-between">
+                                  <span style={{ color: 'var(--hud-text-dim)' }}>API balance</span>
+                                  <span className="font-bold" style={{ color: 'var(--hud-accent)' }}>{amount(r.bal, r.currency)}</span>
+                                </div>
+                                <div style={{ color: 'var(--hud-text-dim)' }}>Pulled from {r.display} API {r.iframeUrl && (<>· <a href={r.iframeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hud-accent)' }}>open console ↗</a></>)}</div>
+                              </div>
+                            )}
+                            {r.kind === 'scraped' && (
+                              <div className="text-[13px] space-y-1">
+                                <div className="flex justify-between">
+                                  <span style={{ color: 'var(--hud-text-dim)' }}>Scraped from console</span>
+                                  <span className="font-bold" style={{ color: 'var(--hud-accent)' }}>{r.scrapedLabel}</span>
+                                </div>
+                                {r.scrapedDate && <DetailRow label="Scraped at" value={r.scrapedDate.slice(0, 19).replace('T', ' ')} />}
+                                <div style={{ color: 'var(--hud-text-dim)' }}>Read from {r.display}'s web dashboard via Playwright {(r.scrapedUrl || r.iframeUrl) && (<>· <a href={r.scrapedUrl || r.iframeUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--hud-accent)' }}>open console ↗</a></>)}</div>
+                              </div>
+                            )}
+                            {r.kind === 'none' && r.iframeUrl && (
+                              <div className="flex items-center justify-between gap-4">
+                                <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>No API for {r.display} yet — usage lives in the web console (scraper pending).</div>
+                                <a href={r.iframeUrl} target="_blank" rel="noopener noreferrer"
+                                   className="px-3 py-1.5 text-[13px] font-bold whitespace-nowrap"
+                                   style={{ background: 'var(--hud-accent)', color: '#000', textDecoration: 'none', borderRadius: '3px' }}>
+                                  Open {r.display} ↗
+                                </a>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       )}
@@ -212,9 +332,10 @@ export default function TokenCostsPanel() {
             </table>
           </div>
           {billingData.summary && (
-            <div className="mt-3 pt-2 text-[13px]" style={{ borderTop: '1px solid var(--hud-border)', color: 'var(--hud-text-dim)' }}>
-              {billingData.providers_with_data}/{billingData.total_providers} providers with billing data · 
-              Last scan: {billingData.updated_at?.slice(0, 19) || 'unknown'}
+            <div className="mt-3 pt-2 text-[13px] space-y-1" style={{ borderTop: '1px solid var(--hud-border)', color: 'var(--hud-text-dim)' }}>
+              <div>{billingData.providers_with_data}/{billingData.total_providers} providers with billing data ·
+              Last scan: {billingData.updated_at?.slice(0, 19) || 'unknown'}</div>
+              <div>▶ expand for details · balances/credits/usage pulled server-side · console-only providers link out (scrapers pending)</div>
             </div>
           )}
         </Panel>

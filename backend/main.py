@@ -86,7 +86,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://hermeshud.com"],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -145,6 +145,19 @@ app.include_router(model_info.router, prefix="/api")
 app.include_router(plugins.router, prefix="/api")
 app.include_router(replay.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
+
+@app.middleware("http")
+async def _cache_control(request, call_next):
+    """Prevent white-screens after redeploys: the SPA shell must always revalidate
+    (so it points at the current hashed bundle), while immutable hashed assets cache hard."""
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/assets/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif path == "/" or path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    return response
+
 
 # Serve frontend static files (after API routes so /api takes priority)
 if STATIC_DIR.exists():
