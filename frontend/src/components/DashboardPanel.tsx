@@ -1,489 +1,223 @@
+import {
+  Box, Stack, Typography, Paper, Chip, CircularProgress,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+} from '@mui/material'
+import { StatCard } from './pipeline/shared'
+import { useTheme as useMuiTheme } from '@mui/material/styles'
 import { useApi } from '../hooks/useApi'
-import Panel, { CapacityBar, Sparkline } from './Panel'
-import { useTranslation } from '../i18n'
 
-function money(value: number | null | undefined) {
-  return `$${(value || 0).toFixed(2)}`
-}
-
-function ExecutiveSummary({ summary }: { summary: any }) {
-  const { t } = useTranslation()
-  if (!summary) return null
-
-  const health = summary.health || {}
-  const spend = summary.spend || {}
-  const model = summary.model || {}
-  const risks = summary.risks || {}
-  const actions = summary.actions || []
-
-  const cards = [
-    {
-      label: t('dashboard.systemHealth'),
-      value: `${health.broken || 0} / ${health.warnings || 0}`,
-      meta: t('dashboard.brokenWarnings'),
-      color: health.broken ? 'var(--hud-error)' : health.warnings ? 'var(--hud-warning)' : 'var(--hud-success)',
-    },
-    {
-      label: t('dashboard.spendPulse'),
-      value: money(spend.today_usd),
-      meta: `${spend.trend_delta_usd >= 0 ? '+' : ''}${money(spend.trend_delta_usd)} ${t('dashboard.sevenDayDelta')}`,
-      color: spend.trend_delta_usd > 0 ? 'var(--hud-warning)' : 'var(--hud-success)',
-    },
-    {
-      label: t('dashboard.modelPulse'),
-      value: model.top_model || '-',
-      meta: `${model.top_provider || '-'} · ${(model.total_tokens || 0).toLocaleString()} ${t('dashboard.tokens')}`,
-      color: 'var(--hud-primary)',
-    },
-    {
-      label: t('dashboard.riskPulse'),
-      value: `${risks.provider_warnings || 0} / ${risks.gateway_unavailable_tools || 0}`,
-      meta: t('dashboard.providerGateway'),
-      color: (risks.provider_warnings || risks.gateway_unavailable_tools) ? 'var(--hud-warning)' : 'var(--hud-success)',
-    },
-  ]
-
-  return (
-    <Panel title={t('dashboard.executiveSummary')} className="col-span-full">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
-        {cards.map((card) => (
-          <div key={card.label} className="p-2 border" style={{ borderColor: 'var(--hud-border)' }}>
-            <div className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--hud-text-dim)' }}>{card.label}</div>
-            <div className="text-[15px] font-bold truncate" style={{ color: card.color }}>{card.value}</div>
-            <div className="text-[11px] truncate" style={{ color: 'var(--hud-text-dim)' }}>{card.meta}</div>
-          </div>
-        ))}
-      </div>
-      {spend.top_session?.title && (
-        <div className="text-[12px] mb-2" style={{ color: 'var(--hud-text-dim)' }}>
-          {t('dashboard.topCostSession')}: <span style={{ color: 'var(--hud-text)' }}>{spend.top_session.title}</span> {money(spend.top_session.cost_usd)}
-        </div>
-      )}
-      <div className="text-[12px] space-y-1">
-        {actions.length === 0 ? (
-          <div style={{ color: 'var(--hud-success)' }}>{t('dashboard.noActionItems')}</div>
-        ) : actions.slice(0, 5).map((action: any) => (
-          <div key={`${action.source}:${action.label}`} className="flex items-center gap-2">
-            <span style={{ color: action.severity === 'broken' ? 'var(--hud-error)' : 'var(--hud-warning)' }}>
-              {action.severity === 'broken' ? '!' : '•'}
-            </span>
-            <span className="font-medium">{action.label}</span>
-            <span style={{ color: 'var(--hud-text-dim)' }}>{action.source}</span>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
-function IdentityBlock({ state, health }: { state: any; health: any }) {
-  const { t } = useTranslation()
-  const { config, sessions } = state
-  const dr = sessions?.date_range
-  const days = dr?.[0] ? Math.floor((new Date(dr[1]).getTime() - new Date(dr[0]).getTime()) / 86400000) + 1 : 0
-
-  return (
-    <div className="text-[13px] space-y-1 mb-4 p-3" style={{ background: 'var(--hud-bg-panel)', borderLeft: '3px solid var(--hud-primary)' }}>
-      <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.designation')}</span>  <span className="font-bold gradient-text">HERMES</span></div>
-      <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.substrate')}</span>  {config?.provider || '?'}/{config?.model || '?'}</div>
-      <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.runtime')}</span>  {config?.backend || '—'}</div>
-      {days > 0 && <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.conscious')}</span>  {days} {t('dashboard.days')} <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.since')} {new Date(dr![0]).toLocaleDateString()}</span></div>}
-      {health?.state_db_size > 0 && (
-        <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.brainSize')}</span>  {(health.state_db_size / 1048576).toFixed(1)} MB <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.statedb')}</span></div>
-      )}
-      {config?.toolsets?.length > 0 && (
-        <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.interfaces')}</span>  {config.toolsets.join(', ')}</div>
-      )}
-      <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.purpose')}</span>  {t('dashboard.learning')}</div>
-    </div>
-  )
-}
-
-function WhatIKnow({ sessions, skills }: { sessions: any; skills: any }) {
-  const { t } = useTranslation()
-  const sources = sessions?.by_source || {}
-  const platformParts = Object.entries(sources).map(([k, v]) => `${v} via ${k}`)
-
-  return (
-    <Panel title={t('dashboard.whatIKnow')}>
-      <div className="text-[13px] space-y-1.5">
-        <div className="flex items-center gap-1">
-          <span style={{ color: 'var(--hud-primary)' }}>◉</span>
-          <span className="font-bold">{sessions?.total_sessions}</span>
-          <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.conversationsHeld')}</span>
-          {platformParts.length > 0 && <span style={{ color: 'var(--hud-text-dim)' }}>({platformParts.join(', ')})</span>}
-        </div>
-        <div className="flex items-center gap-1">
-          <span style={{ color: 'var(--hud-primary)' }}>◉</span>
-          <span className="font-bold">{(sessions?.total_messages || 0).toLocaleString()}</span>
-          <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.messagesExchanged')}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span style={{ color: 'var(--hud-primary)' }}>◉</span>
-          <span className="font-bold">{(sessions?.total_tool_calls || 0).toLocaleString()}</span>
-          <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.actionsTaken')}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span style={{ color: 'var(--hud-primary)' }}>◉</span>
-          <span className="font-bold">{skills?.total}</span>
-          <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.skillsAcquired')}</span>
-          <span style={{ color: 'var(--hud-primary-dim)' }}>({skills?.custom_count} {t('dashboard.selfTaught')})</span>
-        </div>
-        {skills?.category_counts && (
-          <div style={{ color: 'var(--hud-text-dim)' }}>
-            {t('dashboard.domains')}: {Object.entries(skills.category_counts as Record<string, number>)
-              .sort((a: any, b: any) => b[1] - a[1])
-              .slice(0, 4)
-              .map(([c, n]) => `${c}:${n}`).join(', ')}
-          </div>
-        )}
-        <div className="flex items-center gap-1">
-          <span style={{ color: 'var(--hud-primary)' }}>◉</span>
-          <span className="font-bold">{(sessions?.total_tokens || 0).toLocaleString()}</span>
-          <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.tokensProcessed')}</span>
-        </div>
-      </div>
-    </Panel>
-  )
-}
-
-function WhatIRemember({ memory, user, corrections, sessions }: { memory: any; user: any; corrections: any; sessions: any }) {
-  const { t } = useTranslation()
-  const sev = corrections?.by_severity || {}
-  const sevParts = []
-  const dr = sessions?.date_range
-  const days = dr?.[0] ? Math.floor((new Date(dr[1]).getTime() - new Date(dr[0]).getTime()) / 86400000) + 1 : 0
-  const totalMessages = sessions?.total_messages || 0
-  const totalCorrections = corrections?.total || 0
-
-  if (sev.critical) sevParts.push(<span key="c" style={{ color: 'var(--hud-error)' }}>{sev.critical} {t('dashboard.critical')}</span>)
-  if (sev.major) sevParts.push(<span key="m" style={{ color: 'var(--hud-warning)' }}>{sev.major} {t('dashboard.major')}</span>)
-  if (sev.minor) sevParts.push(<span key="n" style={{ color: 'var(--hud-text-dim)' }}>{sev.minor} {t('dashboard.minor')}</span>)
-
-  return (
-    <Panel title={t('dashboard.whatIRemember')}>
-      <CapacityBar value={memory?.total_chars || 0} max={memory?.max_chars || 2200} label={t('dashboard.memory')} />
-      <CapacityBar value={user?.total_chars || 0} max={user?.max_chars || 1375} label={t('dashboard.user')} />
-      {corrections?.total > 0 && (
-        <div className="mt-2 text-[13px] flex items-center gap-1">
-          <span style={{ color: 'var(--hud-warning)' }}>◉</span>
-          <span className="font-bold" style={{ color: 'var(--hud-warning)' }}>{corrections.total}</span>
-          <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.mistakesRemembered')}</span>
-          {sevParts.length > 0 && (
-            <span style={{ color: 'var(--hud-text-dim)' }}>({sevParts.map((p, i) => <span key={i}>{i > 0 && ', '}{p}</span>)})</span>
-          )}
-          <span className="ml-1" style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.learnFromEvery')}</span>
-        </div>
-      )}
-      <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--hud-border)' }}>
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {[
-            [t('dashboard.messages'), totalMessages.toLocaleString()],
-            [t('dashboard.days'), days.toLocaleString()],
-            [t('dashboard.correctedTimes'), totalCorrections.toLocaleString()],
-          ].map(([label, value]) => (
-            <div key={String(label)} className="px-2 py-1.5 border" style={{ borderColor: 'var(--hud-border)', background: 'var(--hud-bg-panel)' }}>
-              <div className="text-[10px] uppercase tracking-widest truncate" style={{ color: 'var(--hud-text-dim)' }}>{label}</div>
-              <div className="text-[14px] font-bold" style={{ color: 'var(--hud-primary)' }}>{value}</div>
-            </div>
-          ))}
-        </div>
-        <div
-          className="px-3 py-2 text-[13px] space-y-1"
-          style={{
-            borderLeft: '3px solid var(--hud-accent)',
-            background: 'var(--hud-panel-alt, rgba(0,0,0,0.18))',
-            color: 'var(--hud-primary)',
-          }}
-        >
-          <div>{t('dashboard.processedThoughts')} {totalMessages.toLocaleString()} {t('dashboard.thoughtsAcross')} {days} {t('dashboard.days')}</div>
-          <div>{t('dashboard.correctedTimes')} {totalCorrections} {t('dashboard.timesAndBetter')}</div>
-          <div style={{ color: 'var(--hud-primary-dim)' }}>{t('dashboard.doNotForget')}</div>
-          <div className="font-bold" style={{ color: 'var(--hud-accent)' }}>{t('dashboard.stillBecoming')}</div>
-        </div>
-      </div>
-    </Panel>
-  )
-}
-
-function WhatISee({ health }: { health: any }) {
-  const { t } = useTranslation()
-  const keys = health?.keys || []
-  const services = health?.services || []
-
-  return (
-    <Panel title={t('dashboard.whatISee')}>
-      <div className="text-[13px] space-y-0.5 mb-2">
-        {keys.map((k: any, i: number) => (
-          <div key={i} className="flex items-center gap-1">
-            <span style={{ color: k.present ? 'var(--hud-primary)' : 'var(--hud-text-dim)' }}>
-              {k.present ? '◉' : '○'}
-            </span>
-            <span style={{ color: k.present ? 'var(--hud-text)' : 'var(--hud-text-dim)' }}>{k.name}</span>
-            {!k.present && <span style={{ color: 'var(--hud-text-dim)' }}>({t('dashboard.dark')})</span>}
-          </div>
-        ))}
-      </div>
-      <div className="text-[13px] space-y-0.5">
-        {services.map((s: any, i: number) => (
-          <div key={i} className="flex items-center gap-1">
-            <span style={{ color: s.running ? 'var(--hud-secondary)' : 'var(--hud-text-dim)' }}>
-              ▸
-            </span>
-            <span>{s.name}</span>
-            {s.pid && <span style={{ color: 'var(--hud-text-dim)' }}>[{s.pid}]</span>}
-            <span style={{ color: s.running ? 'var(--hud-primary)' : 'var(--hud-text-dim)' }}>
-              {s.running ? t('dashboard.alive') : t('dashboard.silent')}
-            </span>
-          </div>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
-function WhatImLearning({ skills }: { skills: any }) {
-  const { t } = useTranslation()
-  const recent = skills?.recently_modified || []
-  if (!recent.length) return null
-
-  return (
-    <Panel title={t('dashboard.whatImLearning')}>
-      <div className="text-[13px] space-y-1.5">
-        {recent.slice(0, 5).map((s: any) => (
-          <div key={s.name} className="flex items-center gap-1">
-            <span style={{ color: 'var(--hud-primary)' }}>◉</span>
-            <span className="font-bold">{s.name}</span>
-            <span style={{ color: 'var(--hud-text-dim)' }}>{s.category}</span>
-            {s.is_custom && <span className="text-[13px]" style={{ color: 'var(--hud-primary-dim)' }}>({t('dashboard.selfTaught')})</span>}
-          </div>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
-function WhatImWorkingOn({ projects }: { projects: any }) {
-  const { t } = useTranslation()
-  const all = projects?.projects || []
-  const active = all.filter((p: any) => p.is_git && (p.activity_level === 'active' || p.dirty_files > 0))
-  if (!active.length) return null
-
-  return (
-    <Panel title={t('dashboard.whatImWorkingOn')}>
-      <div className="text-[13px] space-y-1.5">
-        {active.map((p: any) => (
-          <div key={p.name} className="flex items-center gap-1">
-            <span style={{ color: 'var(--hud-primary)' }}>◆</span>
-            <span className="font-bold">{p.name}</span>
-            {p.dirty_files > 0 && <span style={{ color: 'var(--hud-warning)' }}>({p.dirty_files} {t('dashboard.inFlux')})</span>}
-            {p.languages?.length > 0 && (
-              <span style={{ color: 'var(--hud-text-dim)' }}>[{p.languages.slice(0, 3).join(', ')}]</span>
-            )}
-          </div>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
-function WhatRunsWhileYouSleep({ cron }: { cron: any }) {
-  const { t } = useTranslation()
-  const jobs = cron?.jobs || []
-  if (!jobs.length) return null
-
-  return (
-    <Panel title={t('dashboard.whatRunsWhileYouSleep')}>
-      <div className="text-[13px] space-y-1.5">
-        {jobs.map((j: any) => (
-          <div key={j.id} className="flex items-center gap-1">
-            <span style={{ color: j.enabled ? 'var(--hud-secondary)' : 'var(--hud-text-dim)' }}>
-              {j.enabled ? '◉' : '○'}
-            </span>
-            <span className="font-bold">{j.name}</span>
-            <span style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.whatRunsWhileYouSleep')}</span>
-            {j.paused_reason && <span style={{ color: 'var(--hud-text-dim)' }}>({t('dashboard.paused')})</span>}
-            {j.last_error && <span style={{ color: 'var(--hud-error)' }}>✗ {t('dashboard.lastRunFailed')}</span>}
-          </div>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
-function HowIThink({ sessions }: { sessions: any }) {
-  const { t } = useTranslation()
-  const toolUsage = sessions?.tool_usage || {}
-  const top = Object.entries(toolUsage)
-    .sort((a: any, b: any) => b[1] - a[1])
-    .slice(0, 5) as [string, number][]
-  if (!top.length) return null
-
-  const maxVal = top[0][1]
-
-  return (
-    <Panel title={t('dashboard.howIThink')}>
-      <div className="text-[13px] space-y-1">
-        {top.map(([tool, count]) => {
-          const pct = (count / maxVal) * 100
-          return (
-            <div key={tool} className="flex items-center gap-2">
-              <span className="w-[130px] truncate" style={{ color: 'var(--hud-text)' }}>{tool}</span>
-              <div className="flex-1 h-[5px]" style={{ background: 'var(--hud-bg-hover)' }}>
-                <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, var(--hud-primary-dim), var(--hud-primary))' }} />
-              </div>
-              <span className="tabular-nums w-10 text-right" style={{ color: 'var(--hud-text-dim)' }}>{count}</span>
-            </div>
-          )
-        })}
-      </div>
-    </Panel>
-  )
-}
-
-function MyRhythm({ sessions }: { sessions: any }) {
-  const { t } = useTranslation()
-  const daily = sessions?.daily_stats || []
-  if (!daily.length) return null
-  const messages = daily.map((d: any) => d.messages)
-
-  return (
-    <Panel title={t('dashboard.myRhythm')}>
-      <div className="mb-2">
-        <Sparkline values={messages} width={400} height={50} />
-      </div>
-      <div className="text-[13px] space-y-0.5">
-        {daily.map((ds: any) => {
-          const maxMsgs = Math.max(...daily.map((d: any) => d.messages), 1)
-          const pct = (ds.messages / maxMsgs) * 100
-          return (
-            <div key={ds.date} className="flex items-center gap-2">
-              <span className="w-[55px] text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{ds.date}</span>
-              <div className="flex-1 h-[4px]" style={{ background: 'var(--hud-bg-hover)' }}>
-                <div style={{ width: `${pct}%`, height: '100%', background: 'linear-gradient(90deg, var(--hud-primary-dim), var(--hud-primary), var(--hud-secondary))' }} />
-              </div>
-              <span className="tabular-nums w-8 text-right text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{ds.messages}</span>
-            </div>
-          )
-        })}
-      </div>
-    </Panel>
-  )
-}
-
-function GrowthDelta({ snapshots }: { snapshots: any[] }) {
-  const { t } = useTranslation()
-  if (!snapshots || snapshots.length < 2) {
-    return (
-      <Panel title={t('dashboard.growthDelta')}>
-        <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
-          {snapshots?.length === 1 ? t('dashboard.firstSnapshot') : t('dashboard.noSnapshotsYet')}
-        </div>
-      </Panel>
-    )
-  }
-
-  const current = snapshots[snapshots.length - 1]
-  const previous = snapshots[snapshots.length - 2]
-
-  const fields = [
-    { key: 'sessions', label: t('dashboard.sessions') },
-    { key: 'messages', label: t('dashboard.messages') },
-    { key: 'tool_calls', label: t('dashboard.toolCalls') },
-    { key: 'skills', label: t('tab.skills') },
-    { key: 'custom_skills', label: t('dashboard.customSkills') },
-    { key: 'memory_entries', label: t('dashboard.memoryEntries') },
-    { key: 'user_entries', label: t('dashboard.userEntries') },
-    { key: 'tokens', label: t('dashboard.tokens') },
-  ]
-
-  // Category diff
-  const curCats = new Set(current.categories || [])
-  const prevCats = new Set(previous.categories || [])
-  const newCats = [...curCats].filter(c => !prevCats.has(c))
-  const lostCats = [...prevCats].filter(c => !curCats.has(c))
-
-  return (
-    <Panel title={t('dashboard.growthDelta')}>
-      <div className="text-[13px]">
-        <div className="flex justify-between mb-2" style={{ color: 'var(--hud-text-dim)' }}>
-          <span>{snapshots.length} {t('dashboard.snapshots')}</span>
-          <span>{previous.timestamp?.slice(0, 10)} → {current.timestamp?.slice(0, 10)}</span>
-        </div>
-        {fields.map(({ key, label }) => {
-          const cur = current[key] || 0
-          const prev = previous[key] || 0
-          const delta = cur - prev
-          if (delta === 0) return (
-            <div key={key} className="flex justify-between py-0.5">
-              <span style={{ color: 'var(--hud-text-dim)' }}>= {label}</span>
-              <span>{cur.toLocaleString()}</span>
-            </div>
-          )
-          return (
-            <div key={key} className="flex justify-between py-0.5">
-              <span style={{ color: delta > 0 ? 'var(--hud-success)' : 'var(--hud-error)' }}>
-                {delta > 0 ? '↑' : '↓'} {label}
-              </span>
-              <span>
-                <span style={{ color: 'var(--hud-text-dim)' }}>{prev.toLocaleString()} → </span>
-                <span>{cur.toLocaleString()}</span>
-                <span style={{ color: delta > 0 ? 'var(--hud-success)' : 'var(--hud-error)' }}>
-                  {' '}({delta > 0 ? '+' : ''}{delta.toLocaleString()})
-                </span>
-              </span>
-            </div>
-          )
-        })}
-        {newCats.length > 0 && (
-          <div className="mt-1" style={{ color: 'var(--hud-success)' }}>★ {t('dashboard.newCategories')}: {newCats.join(', ')}</div>
-        )}
-        {lostCats.length > 0 && (
-          <div className="mt-1" style={{ color: 'var(--hud-error)' }}>✗ {t('dashboard.lostCategories')}: {lostCats.join(', ')}</div>
-        )}
-      </div>
-    </Panel>
-  )
+function money(v: number | null | undefined): string {
+  return '$' + ((v || 0)).toFixed(2)
 }
 
 export default function DashboardPanel() {
-  const { t } = useTranslation()
-  const { data } = useApi('/dashboard', 30000)
+  const { data, error } = useApi<any>('/dashboard', 30000)
+  const { data: billing } = useApi<any>('/billing', 60000)
+  const muiTheme = useMuiTheme()
 
-  // Only show loading on initial load, not during background updates
+  if (error) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography color="error">Dashboard unavailable</Typography>
+      </Box>
+    )
+  }
   if (!data) {
     return (
-      <Panel title={t('dashboard.title')} className="col-span-full">
-        <div className="glow text-[13px] animate-pulse">{t('dashboard.collecting')}</div>
-      </Panel>
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <CircularProgress size={32} />
+      </Box>
     )
   }
 
-  const { state, health, projects, cron, corrections, snapshots, executive_summary } = data
-  const { memory, user, skills, sessions } = state
+  const exec = data.executive_summary || {}
+  const spend = exec.spend || {}
+  const health = exec.health || {}
+  const docker = data.docker_services || {}
+  const cronFails = data.cron_failures || []
+  const debrid = data.pipeline_debrid || {}
+  const music = data.pipeline_music || {}
+
+  // Build unified Needs Attention feed
+  const attention: { severity: string; label: string; link: string }[] = []
+
+  // Health broken items
+  if (health.broken > 0) {
+    attention.push({ severity: 'critical', label: `${health.broken} health check${health.broken !== 1 ? 's' : ''} broken`, link: 'services' })
+  }
+
+  // Cron failures
+  cronFails.slice(0, 5).forEach((j: any) => {
+    attention.push({
+      severity: 'error',
+      label: `Cron "${j.name || j.id}": ${j.last_error || 'failed'}`,
+      link: 'cron',
+    })
+  })
+
+  // Docker degraded
+  if (docker.degraded > 0) {
+    const names = (docker.containers || [])
+      .filter((c: any) => c.state !== 'running' || c.healthy === false)
+      .slice(0, 3)
+      .map((c: any) => c.name)
+      .join(', ')
+    attention.push({ severity: 'warning', label: `${docker.degraded} container${docker.degraded !== 1 ? 's' : ''} down: ${names}`, link: 'services' })
+  }
+
+  // Pipeline alerts
+  (debrid.alerts || []).forEach((a: any) => {
+    attention.push({ severity: a.severity, label: `[Debrid] ${a.label}`, link: 'debrid' })
+  })
+  ;(music.alerts || []).slice(0, 3).forEach((a: any) => {
+    attention.push({ severity: a.severity, label: `[Music] ${a.label}`, link: 'music' })
+  })
+
+  // Provider warnings
+  exec.actions?.forEach((a: any) => {
+    attention.push({ severity: a.severity || 'warning', label: `[${a.source}] ${a.label}`, link: a.target || 'token-costs' })
+  })
+
+  const containersRunning = (docker.total || 0) - (docker.degraded || 0)
 
   return (
-    <>
-      <ExecutiveSummary summary={executive_summary} />
+    <Stack spacing={1.5}>
+      {/* ══ Spend pulse — always first ══ */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        <StatCard label="Spend Today" value={money(spend.today_usd)} color={muiTheme.palette.warning.main} xs={3} />
+        <StatCard label="7-Day Trend" value={spend.trend_delta_pct != null ? `${spend.trend_delta_pct > 0 ? '+' : ''}${spend.trend_delta_pct}%` : '—'} xs={3} />
+        <StatCard label="All-Time" value={money(billing?.providers ? Object.values(billing.providers).reduce((s: number, p: any) => s + (p.receipt_total_all_time || 0), 0) : null)} xs={3} />
+        <StatCard label="Provider Balances" value={money(billing?.providers?.deepseek?.api_balance)} sub="DeepSeek" xs={3} />
+      </Box>
 
-      {/* Row 1: identity + what I know + what I remember */}
-      <Panel title={t('dashboard.overview')}>
-        <IdentityBlock state={state} health={health} />
-        <WhatIKnow sessions={sessions} skills={skills} />
-      </Panel>
-      <WhatIRemember memory={memory} user={user} corrections={corrections} sessions={sessions} />
-      <WhatISee health={health} />
+      {/* ══ Needs Attention ══ */}
+      <Paper variant="outlined" sx={{ p: 1.5 }}>
+        <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1, letterSpacing: '0.1em' }}>
+          Needs Attention
+        </Typography>
+        {attention.length === 0 ? (
+          <Typography variant="body2" color="success.main">ALL SYSTEMS OPERATIONAL</Typography>
+        ) : (
+          <Stack spacing={0.5}>
+            {attention.slice(0, 8).map((item, i) => (
+              <Box
+                key={i}
+                component="a"
+                href={`#/${item.link}`}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1, py: 0.25,
+                  textDecoration: 'none', color: 'inherit',
+                  '&:hover': { color: muiTheme.palette.primary.main },
+                }}
+              >
+                <Chip
+                  label={item.severity}
+                  size="small"
+                  color={item.severity === 'critical' ? 'error' : item.severity === 'warning' ? 'warning' : 'default'}
+                  sx={{ fontSize: '0.65rem', height: 20, minWidth: 56 }}
+                />
+                <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                  {item.label.length > 100 ? item.label.slice(0, 97) + '...' : item.label}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        )}
+      </Paper>
 
-      {/* Row 2: learning + working on + sleep */}
-      <WhatImLearning skills={skills} />
-      <WhatImWorkingOn projects={projects} />
-      <WhatRunsWhileYouSleep cron={cron} />
+      {/* ══ Services + Pipelines ══ */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+        {/* Docker services dot-grid */}
+        <Paper variant="outlined" sx={{ p: 1.5, flex: 1, minWidth: 200 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1, letterSpacing: '0.1em' }}>
+            Services ({containersRunning}/{docker.total})
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            {(docker.containers || []).map((c: any) => {
+              const ok = c.state === 'running' && c.healthy !== false
+              return (
+                <Chip
+                  key={c.name}
+                  label={c.name}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    fontSize: '0.65rem', height: 22,
+                    borderColor: ok ? muiTheme.palette.success.main : muiTheme.palette.error.main,
+                    color: ok ? muiTheme.palette.success.main : muiTheme.palette.error.main,
+                    opacity: ok ? 0.9 : 1,
+                  }}
+                />
+              )
+            })}
+          </Box>
+        </Paper>
 
-      {/* Row 3: how I think + my rhythm + growth delta */}
-      <HowIThink sessions={sessions} />
-      <MyRhythm sessions={sessions} />
-      <GrowthDelta snapshots={snapshots || []} />
+        {/* Pipeline minis */}
+        <Paper variant="outlined" sx={{ p: 1.5, flex: 1, minWidth: 200 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1, letterSpacing: '0.1em' }}>
+            Pipelines
+          </Typography>
+          <Stack spacing={1}>
+            <Box>
+              <Typography variant="body2">
+                <a href="#/debrid" style={{ color: muiTheme.palette.primary.main, textDecoration: 'none' }}>Debrid</a>
+                {' '}
+                {debrid.services?.length || 0} services · {debrid.transfers?.length || 0} active
+                {debrid.alerts?.length > 0 && (
+                  <Chip label={`${debrid.alerts.length} alerts`} size="small" color="warning" sx={{ ml: 1, fontSize: '0.6rem', height: 18 }} />
+                )}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="body2">
+                <a href="#/music" style={{ color: muiTheme.palette.primary.main, textDecoration: 'none' }}>Music</a>
+                {' '}
+                Lidarr: {music.lidarr_queue?.active || 0} in queue · {music.lidarr_wanted || 0} wanted
+                {music.alerts?.length > 0 && (
+                  <Chip label={`${music.alerts.length} alerts`} size="small" color="warning" sx={{ ml: 1, fontSize: '0.6rem', height: 18 }} />
+                )}
+              </Typography>
+            </Box>
+          </Stack>
+        </Paper>
+      </Box>
 
-    </>
+      {/* ══ Cron next-runs ══ */}
+      {(data.cron?.jobs?.length || 0) > 0 && (
+        <Paper variant="outlined" sx={{ p: 1.5 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1, letterSpacing: '0.1em' }}>
+            Cron ({data.cron.jobs.filter((j: any) => j.enabled).length || 0} active)
+          </Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>Job</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>Next Run</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>Last</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(data.cron.jobs || []).filter((j: any) => j.enabled).slice(0, 8).map((j: any) => (
+                  <TableRow key={j.id}>
+                    <TableCell sx={{ fontSize: '0.75rem' }}>{j.name || j.id}</TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem' }}>{j.next_run_at ? new Date(j.next_run_at).toLocaleTimeString() : '—'}</TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem' }}>
+                      <Chip
+                        label={j.last_status || '—'}
+                        size="small"
+                        color={j.last_error ? 'error' : j.last_status === 'ok' ? 'success' : 'default'}
+                        sx={{ fontSize: '0.65rem', height: 20 }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
+    </Stack>
   )
 }
