@@ -1,3 +1,15 @@
+## v0.10.0 — 2026-07-05
+- **HashRouter:** active tab survives page reload, Costs tab at slot #2
+- **MUI v9:** full Material Design foundation, CSS-variable theme bridge for all 5 HUD themes
+- **NavShell:** mobile-first navigation (desktop tabs, mobile drawer + bottom nav)
+- **Tab consolidation:** 19→12 tabs, System sub-tabs, Sessions↔Replay, Memory↔Corrections
+- **Debrid tab:** real-time Premiumize/TorBox/DebridLink monitoring with d3 flow diagram
+- **Music tab:** Lidarr queue, Transmission torrents, Nicotine+, MUI X Charts import history
+- **Dashboard:** ops console — spend pulse, needs-attention feed, services dot-grid
+- **Backend:** debrid/music/docker collectors, pipeline API endpoints (30s cache)
+- **Font:** base 16px, no more microscopic text
+- **Removed:** Panel.tsx, TopBar.tsx, @import tailwindcss
+
 # Changelog
 
 All notable changes to hermes-hudui are documented here.
