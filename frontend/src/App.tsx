@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react'
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './hooks/useTheme'
 import { useWebSocket } from './hooks/useWebSocket'
-import { TABS, type TabId } from './routes'
+import { TABS, REDIRECTS, type TabId } from './routes'
 import NavShell from './components/NavShell'
 import CommandPalette from './components/CommandPalette'
 import BootScreen from './components/BootScreen'
@@ -12,44 +12,58 @@ import SkillsPanel from './components/SkillsPanel'
 import SessionsPanel from './components/SessionsPanel'
 import ReplayPanel from './components/ReplayPanel'
 import CronPanel from './components/CronPanel'
-import ProjectsPanel from './components/ProjectsPanel'
 import HealthPanel from './components/HealthPanel'
 import AgentsPanel from './components/AgentsPanel'
 import ChatPanel from './components/ChatPanel'
-import ProfilesPanel from './components/ProfilesPanel'
 import TokenCostsPanel from './components/TokenCostsPanel'
 import CorrectionsPanel from './components/CorrectionsPanel'
-import PatternsPanel from './components/PatternsPanel'
-import SudoPanel from './components/SudoPanel'
-import ProvidersPanel from './components/ProvidersPanel'
-import GatewayPanel from './components/GatewayPanel'
-import ModelInfoPanel from './components/ModelInfoPanel'
-import PluginsPanel from './components/PluginsPanel'
+import SubTabs from './components/SubTabs'
+import SystemPanel from './components/SystemPanel'
+import DebridPanel from './components/pipeline/DebridPanel'
+import MusicPanel from './components/pipeline/MusicPanel'
 import { useI18n } from './i18n'
 
 // ── Tab panel resolve ─────────────────────────────────────
 
+function SessionsWrapper() {
+  const { t } = useI18n()
+  return (
+    <SubTabs
+      tabs={[
+        { id: 'sessions',    label: t('tab.sessions'),    element: <SessionsPanel /> },
+        { id: 'replay',      label: t('tab.replay'),      element: <ReplayPanel /> },
+      ]}
+    />
+  )
+}
+
+function MemoryWrapper() {
+  const { t } = useI18n()
+  return (
+    <SubTabs
+      tabs={[
+        { id: 'memory',      label: t('tab.memory'),      element: <MemoryPanel /> },
+        { id: 'corrections', label: t('tab.corrections'), element: <CorrectionsPanel /> },
+      ]}
+    />
+  )
+}
+
 function tabPanel(tab: TabId) {
   switch (tab) {
     case 'dashboard':   return <DashboardPanel />
-    case 'memory':      return <MemoryPanel />
-    case 'skills':      return <SkillsPanel />
-    case 'sessions':    return <SessionsPanel />
-    case 'replay':      return <ReplayPanel />
-    case 'cron':        return <CronPanel />
-    case 'projects':    return <ProjectsPanel />
-    case 'health':      return <HealthPanel />
-    case 'agents':      return <AgentsPanel />
-    case 'chat':        return <ChatPanel />
-    case 'profiles':    return <ProfilesPanel />
     case 'token-costs': return <TokenCostsPanel />
-    case 'corrections': return <CorrectionsPanel />
-    case 'patterns':    return <PatternsPanel />
-    case 'sudo':        return <SudoPanel />
-    case 'providers':   return <ProvidersPanel />
-    case 'gateway':     return <GatewayPanel />
-    case 'model-info':  return <ModelInfoPanel />
-    case 'plugins':     return <PluginsPanel />
+    case 'debrid':      return <DebridPanel />
+    case 'music':       return <MusicPanel />
+    case 'services':    return <HealthPanel />          // component name unchanged
+    case 'cron':        return <CronPanel />
+    case 'chat':        return <ChatPanel />
+    case 'sessions':    return <SessionsWrapper />       // Sessions + Replay
+    case 'memory':      return <MemoryWrapper />          // Memory + Corrections
+    case 'skills':      return <SkillsPanel />
+    case 'agents':      return <AgentsPanel />
+    case 'system':      return <SystemPanel />
+    // ── Old-tab redirects (handled at route level) ──
     default:            return <DashboardPanel />
   }
 }
@@ -58,24 +72,17 @@ function tabPanel(tab: TabId) {
 
 const GRID_CLASS: Record<TabId, string> = {
   dashboard:   'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
-  memory:      'grid-cols-1 sm:grid-cols-2',
+  memory:      'grid-cols-1',
   skills:      'grid-cols-1 lg:grid-cols-[2fr_1fr]',
-  sessions:    'grid-cols-1 lg:grid-cols-[2fr_1fr]',
-  replay:      'grid-cols-1 lg:grid-cols-[360px_1fr]',
+  sessions:    'grid-cols-1',
   cron:        'grid-cols-1',
-  projects:    'grid-cols-1',
-  health:      'grid-cols-1 sm:grid-cols-2',
+  services:    'grid-cols-1 sm:grid-cols-2',
   agents:      'grid-cols-1 lg:grid-cols-2',
   chat:        'grid-cols-1',
-  profiles:    'grid-cols-1',
   'token-costs': 'grid-cols-1 lg:grid-cols-2',
-  corrections: 'grid-cols-1',
-  patterns:    'grid-cols-1 lg:grid-cols-2',
-  sudo:        'grid-cols-1 lg:grid-cols-2',
-  providers:   'grid-cols-1',
-  gateway:     'grid-cols-1',
-  'model-info': 'grid-cols-1 lg:grid-cols-2',
-  plugins:     'grid-cols-1 lg:grid-cols-2',
+  debrid:      'grid-cols-1 lg:grid-cols-2',
+  music:       'grid-cols-1 lg:grid-cols-2',
+  system:      'grid-cols-1',
 }
 
 // ── App ────────────────────────────────────────────────────
@@ -111,10 +118,6 @@ export default function App() {
       shortcut: tab.key as string,
       action: () => handleTabChange(tab.id),
     })),
-    { id: 'token-costs', label: 'tab.token-costs', shortcut: '', action: () => handleTabChange('token-costs') },
-    { id: 'replay',      label: 'tab.replay',      shortcut: '', action: () => handleTabChange('replay') },
-    { id: 'plugins',     label: 'tab.plugins',     shortcut: '', action: () => handleTabChange('plugins') },
-    { id: 'sudo',        label: 'tab.sudo',        shortcut: '', action: () => handleTabChange('sudo') },
   ], [handleTabChange])
 
   const handleCommandSelect = useCallback(
@@ -155,6 +158,10 @@ export default function App() {
               {TABS.map(tab => (
                 <Route key={tab.id} path={`/${tab.id}`} element={tabPanel(tab.id)} />
               ))}
+              {/* Redirect old tabs */}
+              {Object.entries(REDIRECTS).map(([oldId, newId]) => (
+                <Route key={`redir-${oldId}`} path={`/${oldId}`} element={<Navigate to={`/${newId}`} replace />} />
+              ))}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
@@ -166,6 +173,9 @@ export default function App() {
             <Routes>
               {TABS.map(tab => (
                 <Route key={tab.id} path={`/${tab.id}`} element={tabPanel(tab.id)} />
+              ))}
+              {Object.entries(REDIRECTS).map(([oldId, newId]) => (
+                <Route key={`redir-${oldId}`} path={`/${oldId}`} element={<Navigate to={`/${newId}`} replace />} />
               ))}
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

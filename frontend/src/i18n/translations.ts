@@ -22,6 +22,10 @@ export const translations = {
     'tab.gateway': 'Gateway',
     'tab.model-info': 'Model',
     'tab.plugins': 'Plugins',
+    'tab.debrid': 'Debrid',
+    'tab.music': 'Music',
+    'tab.services': 'Services',
+    'tab.system': 'System',
 
     // Plugins
     'plugins.title': 'Plugin Hub',
@@ -588,6 +592,10 @@ export const translations = {
     'tab.gateway': '网关',
     'tab.model-info': '模型',
     'tab.plugins': '插件',
+    'tab.debrid': 'Debrid',
+    'tab.music': '音乐',
+    'tab.services': '服务',
+    'tab.system': '系统',
 
     // Plugins
     'plugins.title': '插件中心',

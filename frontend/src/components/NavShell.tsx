@@ -12,8 +12,7 @@ import { useTheme, THEMES } from '../hooks/useTheme'
 import { useI18n } from '../i18n'
 import { useState, useEffect, useCallback } from 'react'
 
-const TOP_5 = ['dashboard', 'token-costs', 'health', 'cron', 'chat']
-// Will become: ['dashboard', 'token-costs', 'debrid', 'music', 'chat'] in Phase 5
+const TOP_5 = ['dashboard', 'token-costs', 'debrid', 'music', 'chat']
 
 interface NavShellProps {
   activeTab: string
