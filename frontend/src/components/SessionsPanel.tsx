@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel, { Sparkline } from './Panel'
+import MuiPanel, { Sparkline } from './MuiPanel'
 import MessageBubble from './chat/MessageBubble'
 import { useTranslation } from '../i18n'
 
@@ -151,7 +151,7 @@ export default function SessionsPanel() {
   }, [])
 
   if (isLoading && !data) {
-    return <Panel title={t('sessions.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('sessions.loading')}</div></Panel>
+    return <MuiPanel title={t('sessions.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('sessions.loading')}</div></MuiPanel>
   }
 
   const sessions = data.sessions || []
@@ -172,7 +172,7 @@ export default function SessionsPanel() {
         />
       )}
 
-      <Panel title={t('sessions.activity')} className="col-span-2">
+      <MuiPanel title={t('sessions.activity')} className="col-span-2">
         <div className="flex gap-6 mb-3 text-[13px]">
           <div>
             <span className="stat-value text-base">{data.total_sessions || 0}</span>
@@ -201,9 +201,9 @@ export default function SessionsPanel() {
           <div className="text-[13px] uppercase tracking-wider mb-1" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.sessionsPerDay')}</div>
           <Sparkline values={dailySessions} width={500} height={30} />
         </div>
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('sessions.title')}>
+      <MuiPanel title={t('sessions.title')}>
         {/* Search bar */}
         <form onSubmit={handleSearch} className="flex gap-1 mb-2">
           <input
@@ -264,7 +264,7 @@ export default function SessionsPanel() {
             ))}
           </div>
         )}
-      </Panel>
+      </MuiPanel>
     </>
   )
 }

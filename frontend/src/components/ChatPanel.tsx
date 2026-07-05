@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { useChat, useChatAvailability, useChatSessions, useStreamingSessions, cancelSessionStream, loadSavedSessions, loadMessages, seedMessages, clearSessionStorage } from '../hooks/useChat'
 import SessionSidebar from './chat/SessionSidebar'
 import MessageThread from './chat/MessageThread'
@@ -99,20 +99,20 @@ export default function ChatPanel() {
   // Show loading while checking availability
   if (checkingAvailability) {
     return (
-      <Panel title="Chat" className="col-span-full h-full">
+      <MuiPanel title="Chat" className="col-span-full h-full">
         <div className="h-full flex items-center justify-center">
           <div className="text-[13px] animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>
             Checking chat availability...
           </div>
         </div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
   // Show unavailable state
   if (!chatAvailable) {
     return (
-      <Panel title="Chat" className="col-span-full h-full">
+      <MuiPanel title="Chat" className="col-span-full h-full">
         <div className="h-full flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-[14px] mb-2" style={{ color: 'var(--hud-error)' }}>
@@ -127,14 +127,14 @@ export default function ChatPanel() {
             </div>
           </div>
         </div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
   // Show error state
   if (error) {
     return (
-      <Panel title="Chat" className="col-span-full h-full">
+      <MuiPanel title="Chat" className="col-span-full h-full">
         <div className="h-full flex flex-col">
           <div className="p-2 text-[12px]" style={{ color: 'var(--hud-error)', background: 'var(--hud-bg-surface)' }}>
             Error: {error}
@@ -147,12 +147,12 @@ export default function ChatPanel() {
             Retry
           </button>
         </div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
   return (
-    <Panel title="Chat" className="h-full" noPadding>
+    <MuiPanel title="Chat" className="h-full" noPadding>
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <div className="w-48 shrink-0 overflow-hidden">
@@ -203,6 +203,6 @@ export default function ChatPanel() {
           )}
         </div>
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }

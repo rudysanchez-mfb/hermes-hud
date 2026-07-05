@@ -1,5 +1,5 @@
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { useTranslation } from '../i18n'
 
 const SEVERITY: Record<string, { color: string; icon: string }> = {
@@ -14,7 +14,7 @@ export default function CorrectionsPanel() {
 
   // Only show loading on initial load
   if (isLoading && !data) {
-    return <Panel title={t('corrections.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('corrections.loading')}</div></Panel>
+    return <MuiPanel title={t('corrections.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('corrections.loading')}</div></MuiPanel>
   }
 
   const corrections = data.corrections || []
@@ -26,7 +26,7 @@ export default function CorrectionsPanel() {
   }
 
   return (
-    <Panel title={`${t('corrections.title')} — ${corrections.length} ${t('corrections.total')}`} className="col-span-full">
+    <MuiPanel title={`${t('corrections.title')} — ${corrections.length} ${t('corrections.total')}`} className="col-span-full">
       {/* Summary */}
       <div className="flex gap-4 text-[13px] mb-3">
         {['critical', 'major', 'minor'].map(sev => {
@@ -84,6 +84,6 @@ export default function CorrectionsPanel() {
           </div>
         )
       })}
-    </Panel>
+    </MuiPanel>
   )
 }

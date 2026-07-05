@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 
 export default function VerifyPanel({ className = '', embedded = false }: { className?: string; embedded?: boolean }) {
   const [receiptPath, setReceiptPath] = useState('')
@@ -69,8 +69,8 @@ export default function VerifyPanel({ className = '', embedded = false }: { clas
   }
 
   return (
-    <Panel title="Verify" className={className}>
+    <MuiPanel title="Verify" className={className}>
       {content}
-    </Panel>
+    </MuiPanel>
   )
 }

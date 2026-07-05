@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { timeAgo, truncate } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
@@ -423,14 +423,14 @@ export default function CronPanel() {
   }
 
   if (isLoading && !data) {
-    return <Panel title={t('cron.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('cron.loading')}</div></Panel>
+    return <MuiPanel title={t('cron.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('cron.loading')}</div></MuiPanel>
   }
 
   const jobs = Array.isArray(data) ? data : data?.jobs || []
   const hasJobs = jobs.length > 0
 
   return (
-    <Panel title={t('cron.title')} className="col-span-full">
+    <MuiPanel title={t('cron.title')} className="col-span-full">
       <div className="flex items-center justify-between gap-3 mb-3">
         <div className="text-[12px]" style={{ color: 'var(--hud-text-dim)' }}>
           {hasJobs ? `${jobs.length} ${jobs.length === 1 ? t('cron.job') : t('cron.jobs')}` : t('cron.noJobs')}
@@ -604,6 +604,6 @@ export default function CronPanel() {
           })}
         </div>
       )}
-    </Panel>
+    </MuiPanel>
   )
 }

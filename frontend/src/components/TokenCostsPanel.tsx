@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel, { Sparkline } from './Panel'
+import MuiPanel, { Sparkline } from './MuiPanel'
 import { formatTokens } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
@@ -133,7 +133,7 @@ export default function TokenCostsPanel() {
 
   // Only show loading on initial load
   if (isLoading && !data) {
-    return <Panel title={t('tokenCosts.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('tokenCosts.loading')}</div></Panel>
+    return <MuiPanel title={t('tokenCosts.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('tokenCosts.loading')}</div></MuiPanel>
   }
 
   const {
@@ -162,7 +162,7 @@ export default function TokenCostsPanel() {
     <>
       {/* Real Billing — actual receipts + API balances vs estimates */}
       {billingData && (
-        <Panel title="Real Billing vs Estimates" className="col-span-full">
+        <MuiPanel title="Real Billing vs Estimates" className="col-span-full">
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead style={{ color: 'var(--hud-text-dim)' }}>
@@ -338,11 +338,11 @@ export default function TokenCostsPanel() {
               <div>▶ expand for details · balances/credits/usage pulled server-side · console-only providers link out (scrapers pending)</div>
             </div>
           )}
-        </Panel>
+        </MuiPanel>
       )}
 
       {/* Today */}
-      <Panel title={`${t('tokenCosts.today')} — ${money(today.billed_cost_usd ?? today.estimated_cost_usd)}`}>
+      <MuiPanel title={`${t('tokenCosts.today')} — ${money(today.billed_cost_usd ?? today.estimated_cost_usd)}`}>
         <div className="grid grid-cols-2 gap-3 mb-3">
           <StatCard value={today.session_count} label={t('tokenCosts.sessions')} />
           <StatCard value={today.message_count} label={t('tokenCosts.messages')} />
@@ -359,10 +359,10 @@ export default function TokenCostsPanel() {
           {money(today.billed_cost_usd ?? today.estimated_cost_usd)}
         </div>
         <div className="text-[13px] text-center" style={{ color: 'var(--hud-text-dim)' }}>{t('tokenCosts.billedToday')}</div>
-      </Panel>
+      </MuiPanel>
 
       {/* All time */}
-      <Panel title={`${t('tokenCosts.total')} — ${money(allTime.billed_cost_usd ?? allTime.estimated_cost_usd)}`}>
+      <MuiPanel title={`${t('tokenCosts.total')} — ${money(allTime.billed_cost_usd ?? allTime.estimated_cost_usd)}`}>
         <div className="grid grid-cols-2 gap-3 mb-3">
           <StatCard value={allTime.session_count} label={t('tokenCosts.sessions')} />
           <StatCard value={(allTime.message_count || 0).toLocaleString()} label={t('tokenCosts.messages')} />
@@ -391,10 +391,10 @@ export default function TokenCostsPanel() {
         <div className="text-[13px] text-center" style={{ color: 'var(--hud-text-dim)' }}>
           {t('tokenCosts.billedAllTime')} ({byModel.length} {t('tokenCosts.models')})
         </div>
-      </Panel>
+      </MuiPanel>
 
       {/* Trend summary */}
-      <Panel title={t('tokenCosts.trend')}>
+      <MuiPanel title={t('tokenCosts.trend')}>
         <div className="grid grid-cols-2 gap-3 mb-3">
           <StatCard value={money(trendSummary.recent_7d_cost_usd)} label={t('tokenCosts.last7Days')} />
           <StatCard value={money(trendSummary.previous_7d_cost_usd)} label={t('tokenCosts.prev7Days')} />
@@ -404,11 +404,11 @@ export default function TokenCostsPanel() {
           <DetailRow label={t('tokenCosts.cacheSaved')} value={money(allTime.cache_savings_usd)} tone="var(--hud-success)" />
           <DetailRow label={t('tokenCosts.actualCoverage')} value={`${allTime.actual_coverage_pct || 0}%`} />
         </div>
-      </Panel>
+      </MuiPanel>
 
       {/* Top sessions */}
       {topSessions.length > 0 && (
-        <Panel title={t('tokenCosts.topSessions')} className="col-span-full">
+        <MuiPanel title={t('tokenCosts.topSessions')} className="col-span-full">
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead style={{ color: 'var(--hud-text-dim)' }}>
@@ -438,23 +438,23 @@ export default function TokenCostsPanel() {
               </tbody>
             </table>
           </div>
-        </Panel>
+        </MuiPanel>
       )}
 
       {/* Per-model breakdown */}
       {byModel.length > 0 && (
-        <Panel title={`${t('tokenCosts.byModel')} — ${byModel.length} ${t('tokenCosts.models')}`} className="col-span-full">
+        <MuiPanel title={`${t('tokenCosts.byModel')} — ${byModel.length} ${t('tokenCosts.models')}`} className="col-span-full">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
             {byModel.map((m: any) => (
               <ModelCard key={m.model} m={m} />
             ))}
           </div>
-        </Panel>
+        </MuiPanel>
       )}
 
       {/* Daily trend */}
       {dailyTrend.length > 0 && (
-        <Panel title={t('tokenCosts.dailyTrend')} className="col-span-full">
+        <MuiPanel title={t('tokenCosts.dailyTrend')} className="col-span-full">
           <div className="mb-3">
             <div className="text-[13px] uppercase tracking-wider mb-1" style={{ color: 'var(--hud-text-dim)' }}>
               {t('tokenCosts.costPerDay')}
@@ -470,7 +470,7 @@ export default function TokenCostsPanel() {
               </div>
             ))}
           </div>
-        </Panel>
+        </MuiPanel>
       )}
     </>
   )

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useApi } from '../hooks/useApi'
 import { useI18n } from '../i18n'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 
 interface PluginInfo {
   name: string
@@ -96,12 +96,12 @@ export default function PluginsPanel() {
   }
 
   if (isLoading) {
-    return <Panel title={t('plugins.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('plugins.loading')}</div></Panel>
+    return <MuiPanel title={t('plugins.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('plugins.loading')}</div></MuiPanel>
   }
 
   return (
     <>
-      <Panel title={t('plugins.overview')} className="col-span-full">
+      <MuiPanel title={t('plugins.overview')} className="col-span-full">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
             [t('plugins.total'), data?.total_plugins || 0],
@@ -146,9 +146,9 @@ export default function PluginsPanel() {
           </button>
         </div>
         {error && <div className="mt-2 text-[12px]" style={{ color: 'var(--hud-error)' }}>{error}</div>}
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={`${t('plugins.title')} — ${plugins.length}`} className="col-span-full">
+      <MuiPanel title={`${t('plugins.title')} — ${plugins.length}`} className="col-span-full">
         {plugins.length === 0 ? (
           <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('plugins.none')}</div>
         ) : (
@@ -212,9 +212,9 @@ export default function PluginsPanel() {
             ))}
           </div>
         )}
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('plugins.dashboardExtensions')}>
+      <MuiPanel title={t('plugins.dashboardExtensions')}>
         <div className="space-y-2">
           {dashboardPlugins.length ? dashboardPlugins.map(plugin => (
             <div key={plugin.name} className="flex items-center justify-between gap-2 text-[13px]">
@@ -223,9 +223,9 @@ export default function PluginsPanel() {
             </div>
           )) : <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('plugins.none')}</div>}
         </div>
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('plugins.agentPlugins')}>
+      <MuiPanel title={t('plugins.agentPlugins')}>
         <div className="space-y-2">
           {agentPlugins.length ? agentPlugins.map(plugin => (
             <div key={plugin.name} className="flex items-center justify-between gap-2 text-[13px]">
@@ -234,9 +234,9 @@ export default function PluginsPanel() {
             </div>
           )) : <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('plugins.none')}</div>}
         </div>
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('plugins.authRequired')}>
+      <MuiPanel title={t('plugins.authRequired')}>
         <div className="space-y-2">
           {authPlugins.length ? authPlugins.map(plugin => (
             <div key={plugin.name} className="text-[13px]">
@@ -245,7 +245,7 @@ export default function PluginsPanel() {
             </div>
           )) : <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('plugins.none')}</div>}
         </div>
-      </Panel>
+      </MuiPanel>
     </>
   )
 }

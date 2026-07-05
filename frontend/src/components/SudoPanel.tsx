@@ -1,5 +1,5 @@
 import { useApi } from '../hooks/useApi'
-import Panel, { Sparkline } from './Panel'
+import MuiPanel, { Sparkline } from './MuiPanel'
 import { useTranslation } from '../i18n'
 
 const OUTCOME: Record<string, { color: string; icon: string }> = {
@@ -21,9 +21,9 @@ export default function SudoPanel() {
 
   if (isLoading && !data) {
     return (
-      <Panel title={t('sudo.title')} className="col-span-full">
+      <MuiPanel title={t('sudo.title')} className="col-span-full">
         <div className="glow text-[13px] animate-pulse">{t('sudo.loading')}</div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
@@ -39,7 +39,7 @@ export default function SudoPanel() {
   return (
     <>
       {/* Panel 1 — Configuration */}
-      <Panel title={t('sudo.config')} className="col-span-1">
+      <MuiPanel title={t('sudo.config')} className="col-span-1">
         <div className="space-y-2 text-[13px]">
           <div className="flex justify-between py-0.5">
             <span style={{ color: 'var(--hud-text-dim)' }}>{t('sudo.approvalMode')}</span>
@@ -82,10 +82,10 @@ export default function SudoPanel() {
             </div>
           </div>
         </div>
-      </Panel>
+      </MuiPanel>
 
       {/* Panel 2 — Statistics */}
-      <Panel title={t('sudo.stats')} className="col-span-1">
+      <MuiPanel title={t('sudo.stats')} className="col-span-1">
         <div className="space-y-2 text-[13px]">
           <div className="flex justify-between">
             <span style={{ color: 'var(--hud-text-dim)' }}>{t('sudo.totalCommands')}</span>
@@ -117,10 +117,10 @@ export default function SudoPanel() {
             </div>
           )}
         </div>
-      </Panel>
+      </MuiPanel>
 
       {/* Panel 3 — Command History */}
-      <Panel title={t('sudo.history')} className="col-span-full">
+      <MuiPanel title={t('sudo.history')} className="col-span-full">
         {commands.length === 0 ? (
           <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
             {t('sudo.noCommands')}
@@ -151,7 +151,7 @@ export default function SudoPanel() {
             })}
           </div>
         )}
-      </Panel>
+      </MuiPanel>
     </>
   )
 }

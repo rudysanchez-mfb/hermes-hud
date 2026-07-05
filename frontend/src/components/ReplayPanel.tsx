@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { useApi } from '../hooks/useApi'
 import type { ReplayArtifact, ReplayDetail, ReplayEvent, ReplayRun, ReplayRunsResponse } from '../types/replay'
 import VerifyPanel from './VerifyPanel'
@@ -130,7 +130,7 @@ function RunList({
 function ReceiptCard({ detail }: { detail: ReplayDetail }) {
   const { run, receipt } = detail
   return (
-    <Panel title="Run Receipt">
+    <MuiPanel title="Run Receipt">
       <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px]">
         <Metric label="Status" value={run.status} />
         <Metric label="Duration" value={formatDuration(run.duration_ms)} />
@@ -145,7 +145,7 @@ function ReceiptCard({ detail }: { detail: ReplayDetail }) {
         <div>Receipt hash: {receipt?.hashes?.receipt_hash || 'Pending'}</div>
         <div>Replay hash: {receipt?.hashes?.redacted_replay_hash || 'Pending'}</div>
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -188,7 +188,7 @@ function ProofScoreCard({ detail }: { detail: ReplayDetail }) {
   const color = proof.score >= 70 ? 'var(--hud-success)' : proof.score >= 40 ? 'var(--hud-warning)' : 'var(--hud-text-dim)'
 
   return (
-    <Panel title="Proof Score">
+    <MuiPanel title="Proof Score">
       <div className="flex items-end gap-2">
         <div className="text-[34px] leading-none font-bold" style={{ color }}>{proof.score}</div>
         <div className="pb-1 text-[12px] uppercase tracking-wider" style={{ color: 'var(--hud-text-dim)' }}>/ 100 local</div>
@@ -199,7 +199,7 @@ function ProofScoreCard({ detail }: { detail: ReplayDetail }) {
       <div className="mt-2 text-[12px]" style={{ color: 'var(--hud-text-dim)' }}>
         {proof.reasons.length ? proof.reasons.join(' · ') : 'Needs exported hashes and proof artifacts.'}
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -258,7 +258,7 @@ function RedactionPanel({ sessionId }: { sessionId: string }) {
   }, {})
 
   return (
-    <Panel title="Redaction">
+    <MuiPanel title="Redaction">
       <div className="text-[13px] mb-2" style={{ color: 'var(--hud-text-dim)' }}>
         Safe Share Mode hides raw tool arguments, terminal output, reasoning, emails, token-like values, and local paths before export.
       </div>
@@ -316,7 +316,7 @@ function RedactionPanel({ sessionId }: { sessionId: string }) {
           ))}
         </div>
       )}
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -374,7 +374,7 @@ function ExportActions({ sessionId }: { sessionId: string }) {
   ] as const
 
   return (
-    <Panel title="Export">
+    <MuiPanel title="Export">
       <div className="space-y-3">
         {actionGroups.map(group => (
           <div key={group.title}>
@@ -402,7 +402,7 @@ function ExportActions({ sessionId }: { sessionId: string }) {
       <div className="mt-2 text-[12px] break-words" style={{ color: status.includes('failed') ? 'var(--hud-error)' : 'var(--hud-text-dim)' }}>
         {status}
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -410,7 +410,7 @@ function VerifyReplaySection() {
   const [open, setOpen] = useState(false)
 
   return (
-    <Panel title="Verify Export">
+    <MuiPanel title="Verify Export">
       <div className="flex items-start justify-between gap-3">
         <div className="text-[12px] leading-relaxed" style={{ color: 'var(--hud-text-dim)' }}>
           Check a receipt against a redacted replay JSON when you need a portable proof check.
@@ -424,7 +424,7 @@ function VerifyReplaySection() {
         </button>
       </div>
       {open && <VerifyPanel embedded className="mt-3" />}
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -435,7 +435,7 @@ function ShareCardPreview({ detail }: { detail: ReplayDetail }) {
   const tests = testsPassed + testsFailed
 
   return (
-    <Panel title="Share Card Preview">
+    <MuiPanel title="Share Card Preview">
       <div className="aspect-[1200/630] p-4 flex flex-col justify-between" style={{ background: 'var(--hud-bg-deep)', border: '1px solid var(--hud-border)' }}>
         <div>
           <div className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--hud-primary)' }}>Hermes Replay</div>
@@ -456,7 +456,7 @@ function ShareCardPreview({ detail }: { detail: ReplayDetail }) {
           Replay hash: {run.hashes.redacted_replay_hash || 'Pending'}
         </div>
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -482,14 +482,14 @@ function ReplaySettingsPanel() {
 
   if (!data) {
     return (
-      <Panel title="Replay Settings">
+      <MuiPanel title="Replay Settings">
         <div className="text-[13px] animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>Loading settings...</div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
   return (
-    <Panel title="Replay Settings">
+    <MuiPanel title="Replay Settings">
       <div className="space-y-2 text-[13px]">
         <div>
           <div className="uppercase tracking-wider text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>Export directory</div>
@@ -520,7 +520,7 @@ function ReplaySettingsPanel() {
           </label>
         ))}
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -537,7 +537,7 @@ function Timeline({ events }: { events: ReplayEvent[] }) {
   const [open, setOpen] = useState<Record<string, boolean>>({})
 
   return (
-    <Panel title="Timeline">
+    <MuiPanel title="Timeline">
       <div className="space-y-1">
         {events.map(event => (
           <div key={event.event_id} style={{ border: '1px solid var(--hud-border)' }}>
@@ -569,7 +569,7 @@ function Timeline({ events }: { events: ReplayEvent[] }) {
           </div>
         ))}
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -579,7 +579,7 @@ function ProofArtifacts({ artifacts }: { artifacts: ReplayArtifact[] }) {
   const visibleArtifacts = filter === 'all' ? artifacts : artifacts.filter(artifact => artifact.type === filter)
 
   return (
-    <Panel title="Proof Artifacts" className="col-span-full">
+    <MuiPanel title="Proof Artifacts" className="col-span-full">
       {artifacts.length ? (
         <>
           <div className="flex flex-wrap gap-1 mb-2">
@@ -614,7 +614,7 @@ function ProofArtifacts({ artifacts }: { artifacts: ReplayArtifact[] }) {
       ) : (
         <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>No proof artifacts detected.</div>
       )}
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -639,7 +639,7 @@ function RawTracePanel({ detail }: { detail: ReplayDetail }) {
   }, null, 2), [detail])
 
   return (
-    <Panel title="Raw Trace" className="col-span-full">
+    <MuiPanel title="Raw Trace" className="col-span-full">
       <button
         onClick={() => setOpen(value => !value)}
         className="px-2 py-1 text-[12px] cursor-pointer"
@@ -652,7 +652,7 @@ function RawTracePanel({ detail }: { detail: ReplayDetail }) {
           {trace}
         </pre>
       )}
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -661,7 +661,7 @@ function SkillProvenancePanel() {
   const skills = data?.skills || []
 
   return (
-    <Panel title="Skill Provenance" className="col-span-full">
+    <MuiPanel title="Skill Provenance" className="col-span-full">
       {skills.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           {skills.slice(0, 8).map((skill: any) => (
@@ -685,7 +685,7 @@ function SkillProvenancePanel() {
       ) : (
         <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>No skill provenance indexed yet.</div>
       )}
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -695,7 +695,7 @@ function ReplayGalleryPanel() {
   const galleryPath = entries[0]?.manifest_path ? String(entries[0].manifest_path).replace(/(public|unlisted)\/.*\/publish\.json$/, 'gallery.html') : null
 
   return (
-    <Panel title="Published Gallery" className="col-span-full">
+    <MuiPanel title="Published Gallery" className="col-span-full">
       {galleryPath && (
         <div className="mb-2 text-[12px] truncate" style={{ color: 'var(--hud-text-dim)' }}>
           Static index: {galleryPath}
@@ -717,7 +717,7 @@ function ReplayGalleryPanel() {
       ) : (
         <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>No locally published replays yet.</div>
       )}
-    </Panel>
+    </MuiPanel>
   )
 }
 
@@ -746,16 +746,16 @@ export default function ReplayPanel() {
   )
 
   if (isLoading && !data) {
-    return <Panel title="Replay" className="col-span-full"><div className="glow text-[13px] animate-pulse">Loading replay runs...</div></Panel>
+    return <MuiPanel title="Replay" className="col-span-full"><div className="glow text-[13px] animate-pulse">Loading replay runs...</div></MuiPanel>
   }
 
   if (error) {
-    return <Panel title="Replay" className="col-span-full"><div className="text-[13px]" style={{ color: 'var(--hud-error)' }}>Could not load replay runs.</div></Panel>
+    return <MuiPanel title="Replay" className="col-span-full"><div className="text-[13px]" style={{ color: 'var(--hud-error)' }}>Could not load replay runs.</div></MuiPanel>
   }
 
   return (
     <>
-      <Panel title="Replay Runs">
+      <MuiPanel title="Replay Runs">
         <input
           value={query}
           onChange={event => setQuery(event.target.value)}
@@ -788,10 +788,10 @@ export default function ReplayPanel() {
         ) : (
           <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>No replay candidates found.</div>
         )}
-      </Panel>
+      </MuiPanel>
 
       {detailLoading && !detail ? (
-        <Panel title="Replay Detail"><div className="glow text-[13px] animate-pulse">Building replay timeline...</div></Panel>
+        <MuiPanel title="Replay Detail"><div className="glow text-[13px] animate-pulse">Building replay timeline...</div></MuiPanel>
       ) : detail ? (
         <>
           <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-2">
@@ -805,28 +805,28 @@ export default function ReplayPanel() {
               <ReplaySettingsPanel />
               <VerifyReplaySection />
               {detail.missing_data.length > 0 && (
-                <Panel title="Missing Data">
+                <MuiPanel title="Missing Data">
                   <ul className="space-y-1 text-[13px]" style={{ color: 'var(--hud-warning)' }}>
                     {detail.missing_data.map(item => <li key={item}>{item}</li>)}
                   </ul>
-                </Panel>
+                </MuiPanel>
               )}
             </div>
           </div>
-          <Panel title="Run Metadata" className="col-span-full">
+          <MuiPanel title="Run Metadata" className="col-span-full">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[13px]">
               <Metric label="Session ID" value={detail.run.source_session_id} />
               <Metric label="Started" value={formatDate(detail.run.started_at)} />
               <Metric label="Ended" value={formatDate(detail.run.ended_at)} />
             </div>
-          </Panel>
+          </MuiPanel>
           <ProofArtifacts artifacts={detail.artifacts || []} />
           <SkillProvenancePanel />
           <ReplayGalleryPanel />
           <RawTracePanel detail={detail} />
         </>
       ) : (
-        <Panel title="Replay Detail"><div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>Select a run to inspect its replay.</div></Panel>
+        <MuiPanel title="Replay Detail"><div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>Select a run to inspect its replay.</div></MuiPanel>
       )}
     </>
   )

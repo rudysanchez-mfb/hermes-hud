@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { useTranslation } from '../i18n'
 import { formatSize, timeAgo } from '../lib/utils'
 
@@ -125,7 +125,7 @@ export default function HealthPanel() {
 
   // Only show loading on initial load
   if (isLoading && !data) {
-    return <Panel title={t('health.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('health.loading')}</div></Panel>
+    return <MuiPanel title={t('health.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('health.loading')}</div></MuiPanel>
   }
 
   const keys = data.keys || []
@@ -160,7 +160,7 @@ export default function HealthPanel() {
 
   return (
     <>
-      <Panel title={t('health.diagnostics')} className="col-span-full">
+      <MuiPanel title={t('health.diagnostics')} className="col-span-full">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[13px]">
           {[
             [t('health.ok'), data.diagnostics_ok || 0, 'var(--hud-success)'],
@@ -201,25 +201,25 @@ export default function HealthPanel() {
             </button>
           ))}
         </div>
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('health.features')} className="col-span-full">
+      <MuiPanel title={t('health.features')} className="col-span-full">
         <DiagnosticList items={features} onAction={runAction} actionStatus={actionStatus} filter={severityFilter} />
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('health.readiness')} className="col-span-1">
+      <MuiPanel title={t('health.readiness')} className="col-span-1">
         <DiagnosticList items={readiness} onAction={runAction} actionStatus={actionStatus} filter={severityFilter} />
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('health.freshness')} className="col-span-1">
+      <MuiPanel title={t('health.freshness')} className="col-span-1">
         <DiagnosticList items={freshness} onAction={runAction} actionStatus={actionStatus} filter={severityFilter} />
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('health.database')} className="col-span-full">
+      <MuiPanel title={t('health.database')} className="col-span-full">
         <DiagnosticList items={database} onAction={runAction} actionStatus={actionStatus} filter={severityFilter} />
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('health.apiKeys')} className="col-span-1">
+      <MuiPanel title={t('health.apiKeys')} className="col-span-1">
         <div className="space-y-1 text-[13px]">
           {keys.map((k: any, i: number) => (
             <div key={i} className="flex justify-between py-0.5">
@@ -236,9 +236,9 @@ export default function HealthPanel() {
           <span style={{ color: data.keys_missing > 0 ? 'var(--hud-error)' : 'var(--hud-text-dim)' }}>{data.keys_missing || 0}</span>
           <span style={{ color: 'var(--hud-text-dim)' }}> {t('health.missing')}</span>
         </div>
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('health.services')} className="col-span-1">
+      <MuiPanel title={t('health.services')} className="col-span-1">
         <div className="space-y-2 text-[13px]">
           {services.map((s: any, i: number) => (
             <div key={i} className="py-1 px-2" style={{ borderLeft: `2px solid ${s.running ? 'var(--hud-success)' : 'var(--hud-error)'}` }}>
@@ -258,7 +258,7 @@ export default function HealthPanel() {
           <div>{t('health.model')}: {data.config_model || '-'}</div>
           <div>{t('health.db')}: {data.state_db_exists ? `${(data.state_db_size / 1048576).toFixed(1)}MB` : t('health.missing')}</div>
         </div>
-      </Panel>
+      </MuiPanel>
     </>
   )
 }

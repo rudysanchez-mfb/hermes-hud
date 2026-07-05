@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel, { CapacityBar } from './Panel'
+import MuiPanel, { CapacityBar } from './MuiPanel'
 import { timeAgo, formatTokens } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
@@ -640,13 +640,13 @@ export default function ProfilesPanel() {
   const [editing, setEditing] = useState<string | null>(null)
 
   if (isLoading && !data) {
-    return <Panel title={t('profiles.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('profiles.loading')}</div></Panel>
+    return <MuiPanel title={t('profiles.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('profiles.loading')}</div></MuiPanel>
   }
 
   const profiles = data?.profiles || []
 
   return (
-    <Panel title={`${t('profiles.panelTitle')} — ${data?.total || 0} ${t('profiles.total')}, ${data?.active_count || 0} ${t('profiles.activeCount')}`} className="col-span-full">
+    <MuiPanel title={`${t('profiles.panelTitle')} — ${data?.total || 0} ${t('profiles.total')}, ${data?.active_count || 0} ${t('profiles.activeCount')}`} className="col-span-full">
       {editing && (
         <ProfileEditor
           profileName={editing}
@@ -663,6 +663,6 @@ export default function ProfilesPanel() {
           <ProfileCard key={profile.name} p={profile} onEdit={setEditing} />
         ))}
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }

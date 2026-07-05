@@ -1,5 +1,5 @@
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { useTranslation } from '../i18n'
 
 function ProjectCard({ p }: { p: any }) {
@@ -47,12 +47,12 @@ export default function ProjectsPanel() {
 
   // Only show loading on initial load
   if (isLoading && !data) {
-    return <Panel title={t('projects.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('projects.loading')}</div></Panel>
+    return <MuiPanel title={t('projects.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('projects.loading')}</div></MuiPanel>
   }
 
   const all = data.projects || data || []
   if (!Array.isArray(all) || all.length === 0) {
-    return <Panel title={t('projects.title')} className="col-span-full"><div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('projects.noProjects')}</div></Panel>
+    return <MuiPanel title={t('projects.title')} className="col-span-full"><div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('projects.noProjects')}</div></MuiPanel>
   }
 
   const { gitRepos, active, recent, stale, noGit, dirtyCount } = all.reduce(
@@ -72,7 +72,7 @@ export default function ProjectsPanel() {
   )
 
   return (
-    <Panel title={t('projects.title')} className="col-span-full">
+    <MuiPanel title={t('projects.title')} className="col-span-full">
       {/* Summary line */}
       <div className="text-[13px] mb-3">
         <span className="font-bold">{all.length}</span> {t('projects.projects')}
@@ -135,6 +135,6 @@ export default function ProjectsPanel() {
           </div>
         </div>
       )}
-    </Panel>
+    </MuiPanel>
   )
 }

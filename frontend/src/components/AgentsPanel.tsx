@@ -1,5 +1,5 @@
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { formatDur } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
@@ -15,7 +15,7 @@ export default function AgentsPanel() {
 
   // Only show loading on initial load
   if (isLoading && !data) {
-    return <Panel title={t('agents.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('agents.loading')}</div></Panel>
+    return <MuiPanel title={t('agents.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('agents.loading')}</div></MuiPanel>
   }
 
   const processes = data.processes || []
@@ -28,7 +28,7 @@ export default function AgentsPanel() {
   return (
     <>
       {/* Live processes */}
-      <Panel title={`${t('agents.liveAgents')} — ${data.live_count} ${t('agents.live')}, ${idle.length} ${t('agents.idle')}`}>
+      <MuiPanel title={`${t('agents.liveAgents')} — ${data.live_count} ${t('agents.live')}, ${idle.length} ${t('agents.idle')}`}>
         {/* Operator alerts */}
         {alerts.length > 0 && (
           <div className="mb-3">
@@ -97,10 +97,10 @@ export default function AgentsPanel() {
             ))}
           </div>
         )}
-      </Panel>
+      </MuiPanel>
 
       {/* Recent sessions */}
-      <Panel title={`${t('agents.recentActivity')} — ${t('agents.lastSessions')} ${recentSessions.length} ${t('agents.sessions')}`}>
+      <MuiPanel title={`${t('agents.recentActivity')} — ${t('agents.lastSessions')} ${recentSessions.length} ${t('agents.sessions')}`}>
         <div className="space-y-0.5">
           {recentSessions.map((sess: any, i: number) => {
             const style = SOURCE_STYLES[sess.source] || { color: 'var(--hud-text-dim)', label: sess.source }
@@ -125,7 +125,7 @@ export default function AgentsPanel() {
             )
           })}
         </div>
-      </Panel>
+      </MuiPanel>
     </>
   )
 }

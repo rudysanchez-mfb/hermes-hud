@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel, { CapacityBar } from './Panel'
+import MuiPanel, { CapacityBar } from './MuiPanel'
 import { useTranslation } from '../i18n'
 
 async function memoryApi(method: string, body: Record<string, string>) {
@@ -247,30 +247,30 @@ export default function MemoryPanel() {
   const { data, isLoading, mutate } = useApi('/memory', 30000)
 
   if (isLoading && !data) {
-    return <Panel title={t('memory.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('memory.loading')}</div></Panel>
+    return <MuiPanel title={t('memory.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('memory.loading')}</div></MuiPanel>
   }
 
   const { memory, user } = data
 
   return (
     <>
-      <Panel title={t('memory.title')} className="col-span-1">
+      <MuiPanel title={t('memory.title')} className="col-span-1">
         <CapacityBar value={memory?.total_chars || 0} max={memory?.max_chars || 2200} label={t('memory.capacity')} />
         <div className="text-[13px] my-2" style={{ color: 'var(--hud-text-dim)' }}>
           {memory?.entry_count || 0} {t('memory.entries')} · {Object.entries(memory?.count_by_category || {}).map(([k,v]) => `${k}(${v})`).join(' ')}
         </div>
         <MemoryEntries entries={memory?.entries || []} target="memory" onMutate={mutate} />
         <AddEntryForm target="memory" onMutate={mutate} />
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('memory.userProfile')} className="col-span-1">
+      <MuiPanel title={t('memory.userProfile')} className="col-span-1">
         <CapacityBar value={user?.total_chars || 0} max={user?.max_chars || 1375} label={t('memory.capacity')} />
         <div className="text-[13px] my-2" style={{ color: 'var(--hud-text-dim)' }}>
           {user?.entry_count || 0} {t('memory.entries')}
         </div>
         <MemoryEntries entries={user?.entries || []} target="user" onMutate={mutate} />
         <AddEntryForm target="user" onMutate={mutate} />
-      </Panel>
+      </MuiPanel>
     </>
   )
 }

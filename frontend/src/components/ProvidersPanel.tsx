@@ -1,5 +1,5 @@
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { timeAgo } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
@@ -44,9 +44,9 @@ export default function ProvidersPanel() {
 
   if (isLoading && !data) {
     return (
-      <Panel title={t('providers.title')} className="col-span-full">
+      <MuiPanel title={t('providers.title')} className="col-span-full">
         <div className="glow text-[13px] animate-pulse">{t('providers.loading')}</div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
@@ -54,7 +54,7 @@ export default function ProvidersPanel() {
   const warnings = data?.warnings ?? []
 
   return (
-    <Panel title={t('providers.title')} className="col-span-full">
+    <MuiPanel title={t('providers.title')} className="col-span-full">
       <div className="text-[12px] mb-3" style={{ color: 'var(--hud-text-dim)' }}>
         {t('providers.subtitle')}
       </div>
@@ -136,6 +136,6 @@ export default function ProvidersPanel() {
           )
         })}
       </div>
-    </Panel>
+    </MuiPanel>
   )
 }

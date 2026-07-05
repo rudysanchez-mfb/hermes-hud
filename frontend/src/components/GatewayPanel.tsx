@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { timeAgo } from '../lib/utils'
 import { useTranslation } from '../i18n'
 import type { TranslationKey } from '../i18n'
@@ -252,9 +252,9 @@ export default function GatewayPanel() {
 
   if (isLoading && !data) {
     return (
-      <Panel title={t('gateway.title')} className="col-span-full">
+      <MuiPanel title={t('gateway.title')} className="col-span-full">
         <div className="glow text-[13px] animate-pulse">{t('gateway.loading')}</div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
@@ -262,7 +262,7 @@ export default function GatewayPanel() {
 
   return (
     <>
-    <Panel title={t('gateway.title')} className="col-span-full">
+    <MuiPanel title={t('gateway.title')} className="col-span-full">
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
           <div className="text-[13px] space-y-1">
@@ -334,8 +334,8 @@ export default function GatewayPanel() {
           </div>
         </div>
       </div>
-    </Panel>
-    <Panel title={t('gateway.managedTools')} className="col-span-full">
+    </MuiPanel>
+    <MuiPanel title={t('gateway.managedTools')} className="col-span-full">
       <div className="flex flex-wrap gap-2 mb-3 text-[12px]">
         <span style={{ color: 'var(--hud-text-dim)' }}>{t('gateway.nousAuth')}: </span>
         <span style={{ color: data?.managed_tools?.nous_auth_present ? 'var(--hud-success)' : 'var(--hud-error)' }}>
@@ -424,7 +424,7 @@ export default function GatewayPanel() {
           )
         })}
       </div>
-    </Panel>
+    </MuiPanel>
     </>
   )
 }

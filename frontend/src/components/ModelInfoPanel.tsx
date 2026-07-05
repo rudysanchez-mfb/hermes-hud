@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { formatDur, formatTokens, timeAgo } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
@@ -198,19 +198,19 @@ export default function ModelInfoPanel() {
 
   if (isLoading && !data) {
     return (
-      <Panel title={t('modelInfo.title')} className="col-span-full">
+      <MuiPanel title={t('modelInfo.title')} className="col-span-full">
         <div className="glow text-[13px] animate-pulse">{t('modelInfo.loading')}</div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
   if (!data || !data.model) {
     return (
-      <Panel title={t('modelInfo.title')} className="col-span-full">
+      <MuiPanel title={t('modelInfo.title')} className="col-span-full">
         <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
           {t('modelInfo.none')}
         </div>
-      </Panel>
+      </MuiPanel>
     )
   }
 
@@ -224,7 +224,7 @@ export default function ModelInfoPanel() {
 
   return (
     <>
-      <Panel title={t('modelInfo.identity')}>
+      <MuiPanel title={t('modelInfo.identity')}>
         <div className="space-y-1 text-[13px]">
           <div className="flex justify-between">
             <span style={{ color: 'var(--hud-text-dim)' }}>{t('modelInfo.model')}</span>
@@ -270,9 +270,9 @@ export default function ModelInfoPanel() {
             </div>
           )}
         </div>
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('modelInfo.limits')}>
+      <MuiPanel title={t('modelInfo.limits')}>
         <div className="text-[13px] space-y-1">
           <div className="flex justify-between">
             <span style={{ color: 'var(--hud-text-dim)' }}>{t('modelInfo.effectiveContext')}</span>
@@ -302,9 +302,9 @@ export default function ModelInfoPanel() {
             {costRow(t('modelInfo.costCacheRead'), data.cost_cache_read_per_m)}
           </div>
         )}
-      </Panel>
+      </MuiPanel>
 
-      <Panel title={t('modelInfo.usage')} className="col-span-full">
+      <MuiPanel title={t('modelInfo.usage')} className="col-span-full">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div className="text-[12px]" style={{ color: 'var(--hud-text-dim)' }}>
             {periodDays === null ? t('modelInfo.periodAll') : t('modelInfo.periodDays').replace('{days}', String(periodDays))}
@@ -476,7 +476,7 @@ export default function ModelInfoPanel() {
             </div>
           </>
         )}
-      </Panel>
+      </MuiPanel>
     </>
   )
 }

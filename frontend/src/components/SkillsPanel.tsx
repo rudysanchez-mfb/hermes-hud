@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useApi } from '../hooks/useApi'
-import Panel from './Panel'
+import MuiPanel from './MuiPanel'
 import { timeAgo, formatSize } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
@@ -45,7 +45,7 @@ export default function SkillsPanel() {
 
   // Only show loading on initial load
   if (isLoading && !data) {
-    return <Panel title={t('skills.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('skills.scanning')}</div></Panel>
+    return <MuiPanel title={t('skills.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('skills.scanning')}</div></MuiPanel>
   }
 
   const catCounts: Record<string, number> = data.category_counts || {}
@@ -62,7 +62,7 @@ export default function SkillsPanel() {
   return (
     <>
       {/* Category overview */}
-      <Panel title={t('dashboard.skillLibrary')} className="col-span-1">
+      <MuiPanel title={t('dashboard.skillLibrary')} className="col-span-1">
         <div className="flex gap-2 mb-3">
           <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-primary)' }}>
             {data.total} {t('dashboard.total')}
@@ -109,11 +109,11 @@ export default function SkillsPanel() {
             )
           })}
         </div>
-      </Panel>
+      </MuiPanel>
 
       {/* Selected category skills OR recently modified */}
       {selectedCat ? (
-        <Panel title={selectedCat}>
+        <MuiPanel title={selectedCat}>
           <div className="space-y-2">
             {catSkills.map((skill: any) => (
               <SkillItem key={skill.name} skill={skill} variant="category" />
@@ -122,9 +122,9 @@ export default function SkillsPanel() {
               <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.noSkillsInCategory')}</div>
             )}
           </div>
-        </Panel>
+        </MuiPanel>
       ) : (
-        <Panel title={t('dashboard.recentlyModified')}>
+        <MuiPanel title={t('dashboard.recentlyModified')}>
           <div className="space-y-2">
             {recentlyMod.map((skill: any) => (
               <SkillItem key={skill.name} skill={skill} variant="recent" />
@@ -133,7 +133,7 @@ export default function SkillsPanel() {
               <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('dashboard.noRecentModifications')}</div>
             )}
           </div>
-        </Panel>
+        </MuiPanel>
       )}
     </>
   )
