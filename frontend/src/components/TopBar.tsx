@@ -1,30 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme, THEMES } from '../hooks/useTheme'
 import { useI18n } from '../i18n'
+import { TABS } from '../routes'
+import type { TabId } from '../routes'
 
-export const TABS = [
-  { id: 'dashboard', labelKey: 'tab.dashboard', key: '1' },
-  { id: 'memory', labelKey: 'tab.memory', key: '2' },
-  { id: 'skills', labelKey: 'tab.skills', key: '3' },
-  { id: 'sessions', labelKey: 'tab.sessions', key: '4' },
-  { id: 'replay', labelKey: 'tab.replay', key: null },
-  { id: 'cron', labelKey: 'tab.cron', key: '5' },
-  { id: 'projects', labelKey: 'tab.projects', key: '6' },
-  { id: 'health', labelKey: 'tab.health', key: '7' },
-  { id: 'agents', labelKey: 'tab.agents', key: '8' },
-  { id: 'chat', labelKey: 'tab.chat', key: '9' },
-  { id: 'profiles', labelKey: 'tab.profiles', key: '0' },
-  { id: 'token-costs', labelKey: 'tab.token-costs', key: null },
-  { id: 'corrections', labelKey: 'tab.corrections', key: null },
-  { id: 'patterns', labelKey: 'tab.patterns', key: null },
-  { id: 'sudo', labelKey: 'tab.sudo', key: null },
-  { id: 'providers', labelKey: 'tab.providers', key: null },
-  { id: 'gateway', labelKey: 'tab.gateway', key: null },
-  { id: 'model-info', labelKey: 'tab.model-info', key: null },
-  { id: 'plugins', labelKey: 'tab.plugins', key: null },
-] as const
-
-export type TabId = typeof TABS[number]['id']
+export { TABS }
+export type { TabId }
 
 interface TopBarProps {
   activeTab: TabId
@@ -118,7 +99,7 @@ export default function TopBar({ activeTab, onTabChange }: TopBarProps) {
             }}
           >
             {tab.key && <span className="opacity-40 mr-1">{tab.key}</span>}
-            {t(tab.labelKey)}
+            {t(tab.labelKey as any)}
           </button>
         ))}
       </div>

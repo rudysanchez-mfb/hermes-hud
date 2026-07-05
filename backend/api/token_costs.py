@@ -33,9 +33,14 @@ _LLAMA = {"input": 0.10, "output": 0.10, "cache_read": 0.025, "cache_write": 0.1
 _FREE = {"input": 0.0, "output": 0.0, "cache_read": 0.0, "cache_write": 0.0, "reasoning": 0.0}
 
 MODEL_PRICING: dict[str, dict] = {
-    # Anthropic
-    "claude-opus-4-6": {"input": 15.00, "output": 75.00, "cache_read": 1.50, "cache_write": 18.75, "reasoning": 15.00},
+    # Anthropic — current pricing: https://platform.claude.com/docs/en/about-claude/pricing (verified 2026-07-03)
+    # Opus 4.5+ dropped from $15/$75 to $5/$25 per MTok
+    "claude-opus-4.8": {"input": 5.00, "output": 25.00, "cache_read": 0.50, "cache_write": 6.25, "reasoning": 5.00},
+    "claude-opus-4.7": {"input": 5.00, "output": 25.00, "cache_read": 0.50, "cache_write": 6.25, "reasoning": 5.00},
+    "claude-opus-4-6": {"input": 5.00, "output": 25.00, "cache_read": 0.50, "cache_write": 6.25, "reasoning": 5.00},
     "claude-sonnet-4-6": _SONNET,
+    "claude-sonnet-4.6": _SONNET,
+    "claude-sonnet-4-20250514": _SONNET,
     "claude-haiku-3-5": {"input": 0.80, "output": 4.00, "cache_read": 0.08, "cache_write": 1.00, "reasoning": 0.80},
     "claude-4-sonnet": _SONNET,
     "claude-3-7-sonnet": _SONNET,
@@ -44,6 +49,7 @@ MODEL_PRICING: dict[str, dict] = {
     "gpt-5.4-pro": {"input": 30.00, "output": 180.00, "cache_read": 15.00, "cache_write": 30.00, "reasoning": 30.00},
     "gpt-5.4": {"input": 2.50, "output": 15.00, "cache_read": 1.25, "cache_write": 2.50, "reasoning": 2.50},
     "gpt-5.5": _GPT52,
+    "gpt-5.3-codex": {"input": 1.75, "output": 14.00, "cache_read": 0.88, "cache_write": 1.75, "reasoning": 1.75},
     "gpt-5.2-codex": _GPT52,
     "gpt-5.2": _GPT52,
     "gpt-4o": {"input": 2.50, "output": 10.00, "cache_read": 1.25, "cache_write": 2.50, "reasoning": 2.50},
@@ -53,7 +59,9 @@ MODEL_PRICING: dict[str, dict] = {
     "o4-mini": _O_MINI,
     "o3-mini": _O_MINI,
     "o1": {"input": 15.00, "output": 60.00, "cache_read": 7.50, "cache_write": 15.00, "reasoning": 15.00},
-    # DeepSeek
+    # DeepSeek — https://api-docs.deepseek.com/quick_start/pricing (verified 2026-07-03)
+    "deepseek-v4-pro": {"input": 0.435, "output": 0.87, "cache_read": 0.003625, "cache_write": 0.435, "reasoning": 0.435},
+    "deepseek-v4-flash": {"input": 0.14, "output": 0.28, "cache_read": 0.0028, "cache_write": 0.14, "reasoning": 0.14},
     "deepseek-v3": _DEEPSEEK_V3,
     "deepseek-chat": _DEEPSEEK_V3,
     "deepseek-r1": {"input": 0.55, "output": 2.19, "cache_read": 0.14, "cache_write": 0.55, "reasoning": 0.55},
@@ -62,22 +70,34 @@ MODEL_PRICING: dict[str, dict] = {
     "grok-3": {"input": 3.00, "output": 15.00, "cache_read": 0.75, "cache_write": 3.00, "reasoning": 3.00},
     "grok-code-fast": _GROK_FAST,
     "grok-3-mini-fast": _GROK_FAST,
+    "grok-composer-2.5-fast": _GROK_FAST,
     # Google
+    "gemini-3.5-flash": {"input": 0.15, "output": 0.60, "cache_read": 0.04, "cache_write": 0.15, "reasoning": 0.15},
     "gemini-3.1-pro": {"input": 2.00, "output": 12.00, "cache_read": 0.50, "cache_write": 2.00, "reasoning": 2.00},
+    "gemini-3-pro-preview": {"input": 2.00, "output": 12.00, "cache_read": 0.50, "cache_write": 2.00, "reasoning": 2.00},
     "gemini-3-flash": {"input": 0.50, "output": 3.00, "cache_read": 0.13, "cache_write": 0.50, "reasoning": 0.50},
     "gemini-2.5-pro": {"input": 1.25, "output": 10.00, "cache_read": 0.31, "cache_write": 4.50, "reasoning": 1.25},
     "gemini-2.5-flash": {"input": 0.15, "output": 0.60, "cache_read": 0.04, "cache_write": 0.15, "reasoning": 0.15},
     "gemini-2.0-flash": _GEMINI_FLASH_OLD,
     "gemini-flash": _GEMINI_FLASH_OLD,
     # Xiaomi
+    "mimo-v2.5-pro": {"input": 1.00, "output": 3.00, "cache_read": 0.20, "cache_write": 1.00, "reasoning": 1.00},
     "mimo-v2-pro": {"input": 1.00, "output": 3.00, "cache_read": 0.20, "cache_write": 1.00, "reasoning": 1.00},
-    # MiniMax
+    # MiniMax — M3 verified $0.30/$1.20 via OpenRouter (2026-07-03)
+    "MiniMax-M3": {"input": 0.30, "output": 1.20, "cache_read": 0.08, "cache_write": 0.30, "reasoning": 0.30},
     "minimax-m2.7": {"input": 0.20, "output": 1.20, "cache_read": 0.05, "cache_write": 0.20, "reasoning": 0.20},
     "minimax-m2.5": {"input": 0.12, "output": 0.99, "cache_read": 0.06, "cache_write": 0.12, "reasoning": 0.12},
+    # GLM / Z.AI — $1.40/$4.40 per Z.AI docs, $0.26 cached input (verified 2026-07-03)
+    "glm-5.2": {"input": 1.40, "output": 4.40, "cache_read": 0.26, "cache_write": 1.40, "reasoning": 1.40},
+    "@cf/zai-org/glm-5.2": {"input": 1.40, "output": 4.40, "cache_read": 0.26, "cache_write": 1.40, "reasoning": 1.40},
+    # Kimi / Moonshot — K2.7 Code $0.74/$3.50 via OpenRouter (verified 2026-07-03)
+    "kimi-k2.7-code": {"input": 0.74, "output": 3.50, "cache_read": 0.19, "cache_write": 0.74, "reasoning": 0.74},
+    "kimi-k2.6": {"input": 0.60, "output": 2.40, "cache_read": 0.15, "cache_write": 0.60, "reasoning": 0.60},
     # Meta
     "llama-3.3-70b": _LLAMA,
     "llama-4": _LLAMA,
     # Qwen
+    "qwen3.7-max": {"input": 0.40, "output": 2.40, "cache_read": 0.10, "cache_write": 0.40, "reasoning": 0.40},
     "qwen3-coder": {"input": 0.15, "output": 0.80, "cache_read": 0.04, "cache_write": 0.15, "reasoning": 0.15},
     "qwen-3.5-plus": {"input": 0.26, "output": 1.56, "cache_read": 0.065, "cache_write": 0.26, "reasoning": 0.26},
     "qwen-3.5-flash": {"input": 0.065, "output": 0.26, "cache_read": 0.016, "cache_write": 0.065, "reasoning": 0.065},
@@ -86,6 +106,8 @@ MODEL_PRICING: dict[str, dict] = {
     "devstral": {"input": 0.40, "output": 2.00, "cache_read": 0.10, "cache_write": 0.40, "reasoning": 0.40},
     # Local / free
     "local": _FREE,
+    "default": _FREE,
+    "Default": _FREE,
 }
 
 # Precomputed for _get_pricing (avoid sorting on every call)

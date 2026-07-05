@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo, useEffect } from 'react'
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { ThemeProvider } from './hooks/useTheme'
 import { useWebSocket } from './hooks/useWebSocket'
-import TopBar, { type TabId, TABS } from './components/TopBar'
+import { TABS, type TabId } from './routes'
+import TopBar from './components/TopBar'
 import CommandPalette from './components/CommandPalette'
 import BootScreen from './components/BootScreen'
 import DashboardPanel from './components/DashboardPanel'
@@ -25,99 +27,113 @@ import ModelInfoPanel from './components/ModelInfoPanel'
 import PluginsPanel from './components/PluginsPanel'
 import { useI18n } from './i18n'
 
-function TabContent({ tab }: { tab: TabId }) {
+// ── Tab panel resolve ─────────────────────────────────────
+
+function tabPanel(tab: TabId) {
   switch (tab) {
-    case 'dashboard': return <DashboardPanel />
-    case 'memory': return <MemoryPanel />
-    case 'skills': return <SkillsPanel />
-    case 'sessions': return <SessionsPanel />
-    case 'replay': return <ReplayPanel />
-    case 'cron': return <CronPanel />
-    case 'projects': return <ProjectsPanel />
-    case 'health': return <HealthPanel />
-    case 'agents': return <AgentsPanel />
-    case 'chat': return <ChatPanel />
-    case 'profiles': return <ProfilesPanel />
+    case 'dashboard':   return <DashboardPanel />
+    case 'memory':      return <MemoryPanel />
+    case 'skills':      return <SkillsPanel />
+    case 'sessions':    return <SessionsPanel />
+    case 'replay':      return <ReplayPanel />
+    case 'cron':        return <CronPanel />
+    case 'projects':    return <ProjectsPanel />
+    case 'health':      return <HealthPanel />
+    case 'agents':      return <AgentsPanel />
+    case 'chat':        return <ChatPanel />
+    case 'profiles':    return <ProfilesPanel />
     case 'token-costs': return <TokenCostsPanel />
     case 'corrections': return <CorrectionsPanel />
-    case 'patterns': return <PatternsPanel />
-    case 'sudo': return <SudoPanel />
-    case 'providers': return <ProvidersPanel />
-    case 'gateway': return <GatewayPanel />
-    case 'model-info': return <ModelInfoPanel />
-    case 'plugins': return <PluginsPanel />
-    default: return <DashboardPanel />
+    case 'patterns':    return <PatternsPanel />
+    case 'sudo':        return <SudoPanel />
+    case 'providers':   return <ProvidersPanel />
+    case 'gateway':     return <GatewayPanel />
+    case 'model-info':  return <ModelInfoPanel />
+    case 'plugins':     return <PluginsPanel />
+    default:            return <DashboardPanel />
   }
 }
 
-// Grid layout per tab — responsive: 1 col on mobile, full on desktop
+// ── Grid layout per tab ───────────────────────────────────
+
 const GRID_CLASS: Record<TabId, string> = {
-  dashboard: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
-  memory: 'grid-cols-1 sm:grid-cols-2',
-  skills: 'grid-cols-1 lg:grid-cols-[2fr_1fr]',
-  sessions: 'grid-cols-1 lg:grid-cols-[2fr_1fr]',
-  replay: 'grid-cols-1 lg:grid-cols-[360px_1fr]',
-  cron: 'grid-cols-1',
-  projects: 'grid-cols-1',
-  health: 'grid-cols-1 sm:grid-cols-2',
-  agents: 'grid-cols-1 lg:grid-cols-2',
-  chat: 'grid-cols-1',  // Full width for chat
-  profiles: 'grid-cols-1',
+  dashboard:   'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+  memory:      'grid-cols-1 sm:grid-cols-2',
+  skills:      'grid-cols-1 lg:grid-cols-[2fr_1fr]',
+  sessions:    'grid-cols-1 lg:grid-cols-[2fr_1fr]',
+  replay:      'grid-cols-1 lg:grid-cols-[360px_1fr]',
+  cron:        'grid-cols-1',
+  projects:    'grid-cols-1',
+  health:      'grid-cols-1 sm:grid-cols-2',
+  agents:      'grid-cols-1 lg:grid-cols-2',
+  chat:        'grid-cols-1',
+  profiles:    'grid-cols-1',
   'token-costs': 'grid-cols-1 lg:grid-cols-2',
   corrections: 'grid-cols-1',
-  patterns: 'grid-cols-1 lg:grid-cols-2',
-  sudo: 'grid-cols-1 lg:grid-cols-2',
-  providers: 'grid-cols-1',
-  gateway: 'grid-cols-1',
+  patterns:    'grid-cols-1 lg:grid-cols-2',
+  sudo:        'grid-cols-1 lg:grid-cols-2',
+  providers:   'grid-cols-1',
+  gateway:     'grid-cols-1',
   'model-info': 'grid-cols-1 lg:grid-cols-2',
-  plugins: 'grid-cols-1 lg:grid-cols-2',
+  plugins:     'grid-cols-1 lg:grid-cols-2',
 }
+
+// ── App ────────────────────────────────────────────────────
 
 export default function App() {
   const { t } = useI18n()
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard')
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const activeTab = location.pathname.replace(/^\//, '') || 'dashboard'
+
   const [booted, setBooted] = useState(() => {
     return sessionStorage.getItem('hud-booted') === 'true'
   })
-
-  // WebSocket for real-time updates
-  const { status: wsStatus } = useWebSocket()
 
   const handleBootComplete = useCallback(() => {
     setBooted(true)
     sessionStorage.setItem('hud-booted', 'true')
   }, [])
 
-  // Command palette commands (only include tabs with keyboard shortcuts)
+  const { status: wsStatus } = useWebSocket()
+
+  const handleTabChange = useCallback(
+    (tab: TabId) => { navigate('/' + tab) },
+    [navigate],
+  )
+
+  // Command palette — tabs with keyboard shortcuts + supplementary
   const commands = useMemo(() => [
     ...TABS.filter(tab => tab.key !== null).map(tab => ({
       id: tab.id,
       label: `${tab.labelKey}`,
       shortcut: tab.key as string,
-      action: () => setActiveTab(tab.id),
+      action: () => handleTabChange(tab.id),
     })),
-    // Add tabs without keyboard shortcuts
-    { id: 'token-costs', label: 'tab.token-costs', shortcut: '', action: () => setActiveTab('token-costs') },
-    { id: 'replay', label: 'tab.replay', shortcut: '', action: () => setActiveTab('replay') },
-    { id: 'plugins', label: 'tab.plugins', shortcut: '', action: () => setActiveTab('plugins') },
-    { id: 'sudo', label: 'tab.sudo', shortcut: '', action: () => setActiveTab('sudo') },
-  ], [])
+    { id: 'token-costs', label: 'tab.token-costs', shortcut: '', action: () => handleTabChange('token-costs') },
+    { id: 'replay',      label: 'tab.replay',      shortcut: '', action: () => handleTabChange('replay') },
+    { id: 'plugins',     label: 'tab.plugins',     shortcut: '', action: () => handleTabChange('plugins') },
+    { id: 'sudo',        label: 'tab.sudo',        shortcut: '', action: () => handleTabChange('sudo') },
+  ], [handleTabChange])
 
-  const handleCommandSelect = useCallback((id: string) => {
-    setActiveTab(id as TabId)
-  }, [])
+  const handleCommandSelect = useCallback(
+    (id: string) => { handleTabChange(id as TabId) },
+    [handleTabChange],
+  )
 
+  // Custom event: hud:navigate
   useEffect(() => {
     const handler = (event: Event) => {
       const detail = (event as CustomEvent<{ tab?: string }>).detail
       const tab = detail?.tab as TabId | undefined
       if (tab && TABS.some(item => item.id === tab)) {
-        setActiveTab(tab)
+        handleTabChange(tab)
       }
     }
     window.addEventListener('hud:navigate', handler)
     return () => window.removeEventListener('hud:navigate', handler)
-  }, [])
+  }, [handleTabChange])
 
   return (
     <ThemeProvider>
@@ -128,19 +144,32 @@ export default function App() {
         onSelect={handleCommandSelect}
       />
 
-      <TopBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TopBar activeTab={activeTab} onTabChange={handleTabChange} />
 
-      {/* Chat tab: fixed-height, no page scroll — message thread scrolls internally */}
+      {/* Chat tab gets a fixed-height flex container so the message
+          thread scrolls internally instead of page-scrolling. */}
       {activeTab === 'chat' ? (
         <div style={{ flex: '1 1 0', height: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           <div className="p-2 h-full">
-            <TabContent tab={activeTab} />
+            <Routes>
+              {TABS.map(tab => (
+                <Route key={tab.id} path={`/${tab.id}`} element={tabPanel(tab.id)} />
+              ))}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
           </div>
         </div>
       ) : (
         <div className="overflow-y-auto" style={{ flex: '1 1 0', height: 0, minHeight: 0 }}>
-          <div className={`grid gap-2 p-2 ${GRID_CLASS[activeTab]}`}>
-            <TabContent tab={activeTab} />
+          <div className={`grid gap-2 p-2 ${GRID_CLASS[activeTab] || 'grid-cols-1'}`}>
+            <Routes>
+              {TABS.map(tab => (
+                <Route key={tab.id} path={`/${tab.id}`} element={tabPanel(tab.id)} />
+              ))}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
           </div>
         </div>
       )}
@@ -150,7 +179,6 @@ export default function App() {
            style={{ borderColor: 'var(--hud-border)', color: 'var(--hud-text-dim)', background: 'var(--hud-bg-surface)' }}>
         <span className="flex items-center gap-2">
           ☤ {t('boot.version')} v0.9.1
-          {/* WebSocket status indicator */}
           <span
             className="text-[10px] px-1.5 py-0.5 rounded"
             style={{
