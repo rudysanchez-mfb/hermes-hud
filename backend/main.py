@@ -54,6 +54,7 @@ from .api import (
     plugins,
     replay,
     billing,
+    pipeline,
 )
 from .file_watcher import start_watcher, stop_watcher
 from .websocket_manager import ws_manager
@@ -145,6 +146,7 @@ app.include_router(model_info.router, prefix="/api")
 app.include_router(plugins.router, prefix="/api")
 app.include_router(replay.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
+app.include_router(pipeline.router, prefix="/api")
 
 @app.middleware("http")
 async def _cache_control(request, call_next):

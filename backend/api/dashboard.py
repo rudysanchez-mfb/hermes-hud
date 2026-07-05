@@ -11,6 +11,9 @@ from backend.collectors.gateway import collect_gateway_status
 from backend.collectors.model_analytics import collect_model_analytics
 from backend.collectors.providers import collect_providers
 from backend.collectors.snapshot import load_snapshots
+from backend.collectors.docker_services import collect_docker_services
+from backend.collectors.debrid import collect_debrid
+from backend.collectors.music import collect_music
 from .token_costs import get_token_costs
 from .serialize import to_dict
 
@@ -130,6 +133,9 @@ async def get_dashboard():
     model_analytics = collect_model_analytics(days=7)
     providers = collect_providers()
     gateway = collect_gateway_status()
+    docker_services = collect_docker_services()
+    debrid_summary = collect_debrid()
+    music_summary = collect_music()
 
     # Trim state: only keep what the narrative sections need
     lean_state = {
@@ -202,4 +208,12 @@ async def get_dashboard():
             providers,
             gateway,
         ),
+        "docker_services": to_dict(docker_services),
+        "cron_failures": [
+            to_dict(j) for j in getattr(cron, "jobs", [])
+            if getattr(j, "last_error", None)
+            or (getattr(j, "last_status", "") or "").lower() in ("failed", "error")
+        ],
+        "pipeline_debrid": to_dict(debrid_summary),
+        "pipeline_music": to_dict(music_summary),
     }
