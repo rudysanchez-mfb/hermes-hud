@@ -34,7 +34,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [scanlines, setScanlinesState] = useState(() => {
     return localStorage.getItem('hud-scanlines') === 'true'
   })
-  const [muiTheme, setMuiTheme] = useState<Theme>(() => buildMuiTheme())
+  const [muiTheme, setMuiTheme] = useState<Theme>(() => buildMuiTheme(theme))
 
   const setTheme = (t: ThemeId) => {
     setThemeState(t)
@@ -46,13 +46,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('hud-scanlines', String(s))
   }
 
-  // Apply data-theme attribute BEFORE MUI theme reads the CSS vars
+  // Rebuild MUI theme when HUD theme changes
   useLayoutEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
-    // After a tick for CSS to apply, rebuild MUI from the new vars
-    requestAnimationFrame(() => {
-      setMuiTheme(buildMuiTheme())
-    })
+    setMuiTheme(buildMuiTheme(theme))
   }, [theme])
 
   return (
