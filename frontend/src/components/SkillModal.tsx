@@ -41,8 +41,7 @@ export default function SkillModal({ skillName, onClose }: SkillModalProps) {
     setActiveTab(key)
     if (key === 'content') return
 
-    const [_type, ...pathParts] = key.split(':')
-    const path = pathParts.join(':')
+    const path = key.split(':').slice(1).join(':')
     setFileLoading(true)
     try {
       const res = await fetch(`/api/skills/${encodeURIComponent(skillName)}/file?path=${encodeURIComponent(path)}`)

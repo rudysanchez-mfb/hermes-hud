@@ -68,7 +68,9 @@ def _load_keys() -> dict[str, str]:
     }
 
 def _get(url: str, headers: dict | None = None, timeout: int = 10) -> dict:
-    req = urllib.request.Request(url, headers=headers or {})
+    h = headers or {}
+    h.setdefault("User-Agent", "hermes-hudui/1.0")
+    req = urllib.request.Request(url, headers=h)
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
@@ -135,7 +137,9 @@ def collect_debrid() -> DebridPipelineState:
                         {"Authorization": f"Bearer {keys['torbox']}"})
             mylist = _get("https://api.torbox.app/v1/api/torrents/mylist?bypass_cache=true",
                           {"Authorization": f"Bearer {keys['torbox']}"})
-            plan = info.get("data", {}).get("plan_name", "?")
+            _plan_id = info.get("data", {}).get("plan", -1)
+            _plan_names = {0: "Free", 1: "Essential", 2: "Pro", 3: "Pro+"}
+            plan = _plan_names.get(_plan_id, "?")
             active = [t for t in mylist.get("data", []) if t.get("download_state") == "downloading"]
             state.services.append(DebridService(
                 name=f"TorBox ({plan})",

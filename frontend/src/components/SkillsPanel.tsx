@@ -162,7 +162,7 @@ export default function SkillsPanel() {
     return data?.by_category || {}
   }, [data])
 
-  const catCounts: Record<string, number> = data?.category_counts || {}
+  const catCounts: Record<string, number> = useMemo(() => data?.category_counts || {}, [data])
   const sortedCats = useMemo(() => {
     return Object.entries(catCounts)
       .sort(([, a], [, b]) => (b as number) - (a as number))
