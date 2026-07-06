@@ -50,6 +50,12 @@ class SkillInfo:
     modified_at: datetime
     file_size: int = 0
     is_custom: bool = False  # heuristic: modified recently and not in a bulk timestamp
+    triggers: list[str] = field(default_factory=list)
+    linked_files: dict[str, list[str]] = field(default_factory=dict)
+    usage_count: int = 0
+    last_used: Optional[datetime] = None
+    version: str = ""
+    author: str = ""
 
 
 @dataclass
@@ -64,6 +70,10 @@ class SkillsState:
     def custom_count(self) -> int:
         return sum(1 for s in self.skills if s.is_custom)
 
+    @property
+    def total_usage(self) -> int:
+        return sum(s.usage_count for s in self.skills)
+
     def by_category(self) -> dict[str, list[SkillInfo]]:
         cats: dict[str, list[SkillInfo]] = {}
         for s in self.skills:
@@ -75,6 +85,9 @@ class SkillsState:
 
     def recently_modified(self, n: int = 5) -> list[SkillInfo]:
         return sorted(self.skills, key=lambda s: s.modified_at, reverse=True)[:n]
+
+    def most_used(self, n: int = 5) -> list[SkillInfo]:
+        return sorted(self.skills, key=lambda s: s.usage_count, reverse=True)[:n]
 
 
 # ── Plugins ─────────────────────────────────────────────────

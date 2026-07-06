@@ -303,6 +303,20 @@ export const translations = {
     // Skills
     'skills.title': 'Skills',
     'skills.scanning': 'Scanning skill library...',
+    'skills.close': 'Close',
+    'skills.loading': 'Loading...',
+    'skills.usage': 'Usage',
+    'skills.lastUsed': 'Last used',
+    'skills.triggers': 'triggers',
+    'skills.uses': 'uses',
+    'skills.files': 'files',
+    'skills.skill': 'skill',
+    'skills.skills': 'skills',
+    'skills.categories': 'categories',
+    'skills.total': 'total',
+    'skills.totalUses': 'total uses',
+    'skills.mostUsed': 'Most Used',
+    'skills.noSkills': 'No skills found.',
 
     // Cron
     'cron.title': 'Cron',
@@ -873,6 +887,20 @@ export const translations = {
     // Skills
     'skills.title': '技能',
     'skills.scanning': '正在扫描技能库...',
+    'skills.close': '关闭',
+    'skills.loading': '加载中...',
+    'skills.usage': '使用',
+    'skills.lastUsed': '最近使用',
+    'skills.triggers': '触发词',
+    'skills.uses': '次使用',
+    'skills.files': '文件',
+    'skills.skill': '技能',
+    'skills.skills': '技能',
+    'skills.categories': '分类',
+    'skills.total': '总计',
+    'skills.totalUses': '总使用次数',
+    'skills.mostUsed': '最常用',
+    'skills.noSkills': '未找到技能。',
 
     // Cron
     'cron.title': '定时任务',

@@ -73,7 +73,7 @@ function tabPanel(tab: TabId) {
 const GRID_CLASS: Record<TabId, string> = {
   dashboard:   'grid-cols-1',
   memory:      'grid-cols-1',
-  skills:      'grid-cols-1 lg:grid-cols-[2fr_1fr]',
+  skills:      'grid-cols-1',
   sessions:    'grid-cols-1',
   cron:        'grid-cols-1',
   services:    'grid-cols-1 sm:grid-cols-2',
