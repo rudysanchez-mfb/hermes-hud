@@ -5,6 +5,7 @@ import { Box, Typography, Paper } from '@mui/material'
 interface PipelineFlowProps {
   services?: { name: string; active: number }[]
   transfers?: number
+  alerts?: { severity: string; label: string }[]
 }
 
 interface FlowNode {
@@ -21,13 +22,13 @@ interface FlowEdge {
 }
 
 const NODES: FlowNode[] = [
-  { id: 'watchlist',   label: 'Watchlist',     x: 30,  y: 28 },
-  { id: 'plex-debrid', label: 'plex-debrid',   x: 155, y: 28 },
-  { id: 'premiumize',  label: 'PM',            x: 290, y: 12 },
-  { id: 'torbox',      label: 'TB',            x: 290, y: 28 },
-  { id: 'debridlink',  label: 'DL',            x: 290, y: 44 },
-  { id: 'mergerfs',    label: 'mergerfs',      x: 380, y: 28 },
-  { id: 'plex',        label: 'Plex',          x: 485, y: 28 },
+  { id: 'watchlist',   label: 'Watchlist',     x: 65,  y: 52 },
+  { id: 'plex-debrid', label: 'plex-debrid',   x: 235, y: 52 },
+  { id: 'premiumize',  label: 'Premiumize',    x: 445, y: 4 },
+  { id: 'torbox',      label: 'TorBox',        x: 445, y: 52 },
+  { id: 'debridlink',  label: 'DebridLink',    x: 445, y: 100 },
+  { id: 'mergerfs',    label: 'mergerfs',      x: 595, y: 52 },
+  { id: 'plex',        label: 'Plex',          x: 755, y: 52 },
 ]
 
 const EDGES: FlowEdge[] = [
@@ -41,7 +42,7 @@ const EDGES: FlowEdge[] = [
   { from: 'mergerfs', to: 'plex', active: true },
 ]
 
-export default function PipelineFlow({ services, transfers }: PipelineFlowProps) {
+export default function PipelineFlow({ services, transfers, alerts }: PipelineFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
@@ -51,6 +52,15 @@ export default function PipelineFlow({ services, transfers }: PipelineFlowProps)
     const activeNames = new Set((services || []).filter(s => s.active > 0).map(s => s.name.toLowerCase()))
     const hasActiveTransfers = (transfers || 0) > 0
 
+    // Find services mentioned in error alerts
+    const errorServices = new Set<string>()
+    ;(alerts || []).forEach(a => {
+      const label = a.label.toLowerCase()
+      if (label.includes('torbox')) errorServices.add('torbox')
+      if (label.includes('premiumize')) errorServices.add('premiumize')
+      if (label.includes('debridlink')) errorServices.add('debridlink')
+    })
+
     const edgeStates = EDGES.map(e => {
       let active = e.active
       if (e.to === 'premiumize' && activeNames.has('premiumize')) active = hasActiveTransfers
@@ -59,19 +69,19 @@ export default function PipelineFlow({ services, transfers }: PipelineFlowProps)
       return { ...e, active }
     })
 
-    // Draw edges
+    // Draw edges — brighter for both active and inactive
     svg.selectAll<SVGLineElement, typeof edgeStates[number]>('line')
       .data(edgeStates)
       .enter()
       .append('line')
-      .attr('x1', d => (NODES.find(n => n.id === d.from)?.x || 0) + 8)
+      .attr('x1', d => (NODES.find(n => n.id === d.from)?.x || 0) + 7)
       .attr('y1', d => NODES.find(n => n.id === d.from)?.y || 0)
-      .attr('x2', d => (NODES.find(n => n.id === d.to)?.x || 0) - 8)
+      .attr('x2', d => (NODES.find(n => n.id === d.to)?.x || 0) - 7)
       .attr('y2', d => NODES.find(n => n.id === d.to)?.y || 0)
-      .attr('stroke', d => d.active ? 'var(--hud-primary, #00d4ff)' : 'var(--hud-text-dim, #6a7490)')
-      .attr('stroke-width', 1.5)
-      .attr('stroke-dasharray', '4 3')
-      .attr('opacity', d => d.active ? 1 : 0.3)
+      .attr('stroke', d => d.active ? 'var(--hud-primary, #00d4ff)' : 'var(--hud-text, #d0d8e8)')
+      .attr('stroke-width', d => d.active ? 2 : 1)
+      .attr('stroke-dasharray', d => d.active ? '5 3' : '3 4')
+      .attr('opacity', d => d.active ? 1 : 0.5)
       .attr('marker-end', d => d.active ? 'url(#arrow)' : '')
       .each(function () {
         const line = d3.select(this)
@@ -82,7 +92,7 @@ export default function PipelineFlow({ services, transfers }: PipelineFlowProps)
             .transition()
             .duration(800)
             .ease(d3.easeLinear)
-            .attr('stroke-dashoffset', -14)
+            .attr('stroke-dashoffset', -16)
             .on('end', () => animate(sel))
         }
         animate(line)
@@ -95,47 +105,48 @@ export default function PipelineFlow({ services, transfers }: PipelineFlowProps)
       .attr('viewBox', '0 0 6 6')
       .attr('refX', 5)
       .attr('refY', 3)
-      .attr('markerWidth', 4)
-      .attr('markerHeight', 4)
+      .attr('markerWidth', 5)
+      .attr('markerHeight', 5)
       .attr('orient', 'auto')
       .append('path')
       .attr('d', 'M0,0 L6,3 L0,6 Z')
       .attr('fill', 'var(--hud-primary, #00d4ff)')
 
-    // Draw nodes
+    // Draw nodes — red for errored services
     svg.selectAll<SVGCircleElement, FlowNode>('circle')
       .data(NODES)
       .enter()
       .append('circle')
       .attr('cx', d => d.x)
       .attr('cy', d => d.y)
-      .attr('r', 6)
-      .attr('fill', 'var(--hud-bg-panel, #141830)')
-      .attr('stroke', 'var(--hud-primary, #00d4ff)')
-      .attr('stroke-width', 1.5)
+      .attr('r', d => errorServices.has(d.id) ? 7 : 5)
+      .attr('fill', d => errorServices.has(d.id) ? 'var(--hud-error, #ff5252)' : 'var(--hud-bg-panel, #141830)')
+      .attr('stroke', d => errorServices.has(d.id) ? 'var(--hud-error, #ff5252)' : 'var(--hud-primary, #00d4ff)')
+      .attr('stroke-width', d => errorServices.has(d.id) ? 2.5 : 1.5)
 
-    // Labels
+    // Labels — brighter, bolder
     svg.selectAll<SVGTextElement, FlowNode>('text')
       .data(NODES)
       .enter()
       .append('text')
       .attr('x', d => d.x)
-      .attr('y', d => d.y + 18)
+      .attr('y', d => d.y + 16)
       .attr('text-anchor', 'middle')
-      .attr('fill', 'var(--hud-text-dim, #6a7490)')
-      .attr('font-size', '9px')
+      .attr('fill', d => errorServices.has(d.id) ? 'var(--hud-error, #ff5252)' : 'var(--hud-text, #d0d8e8)')
+      .attr('font-size', '11px')
+      .attr('font-weight', d => errorServices.has(d.id) ? '700' : '400')
       .attr('font-family', 'Funnel Sans, sans-serif')
       .text(d => d.label)
 
-  }, [services, transfers])
+  }, [services, transfers, alerts])
 
   return (
     <Paper variant="outlined" sx={{ p: 1.5, mb: 2 }}>
       <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5, letterSpacing: '0.1em' }}>
         Pipeline Flow
       </Typography>
-      <Box sx={{ overflowX: 'auto' }}>
-        <svg ref={svgRef} viewBox="0 0 560 60" style={{ width: '100%', maxWidth: 560, height: 'auto' }} />
+      <Box>
+        <svg ref={svgRef} viewBox="0 0 820 210" style={{ width: '100%', height: 'auto', display: 'block' }} />
       </Box>
     </Paper>
   )

@@ -19,11 +19,11 @@ const PALETTES: Record<ThemeId, Palette> = {
     divider: 'rgba(0,212,255,0.25)',
   },
   'hermes-official': {
-    primary: '#ffe6cb', secondary: '#ffbd38', success: '#4ade80',
-    warning: '#e6a832', error: '#ff7a82',
-    bgDeep: '#041c1c', bgPanel: '#0d3030',
-    text: '#ffe6cb', textDim: 'rgba(255,230,203,0.55)',
-    divider: 'rgba(255,230,203,0.15)',
+    primary: '#2979ff', secondary: '#ffbd38', success: '#00bcd4',
+    warning: '#e6a832', error: '#ff5252',
+    bgDeep: '#050d1a', bgPanel: '#0e1a2e',
+    text: '#d0d8e8', textDim: 'rgba(208,216,232,0.55)',
+    divider: 'rgba(41,121,255,0.15)',
   },
   'blade-runner': {
     primary: '#ffaf00', secondary: '#ffd7af', success: '#00afff',
@@ -33,11 +33,11 @@ const PALETTES: Record<ThemeId, Palette> = {
     divider: 'rgba(255,175,0,0.25)',
   },
   fsociety: {
-    primary: '#00ff00', secondary: '#00ff00', success: '#00ff00',
-    warning: '#e6e600', error: '#d70000',
-    bgDeep: '#000000', bgPanel: '#101010',
-    text: '#c0c0c0', textDim: '#505050',
-    divider: 'rgba(0,255,0,0.2)',
+    primary: '#2979ff', secondary: '#448aff', success: '#00e5ff',
+    warning: '#ffab00', error: '#ff1744',
+    bgDeep: '#070b14', bgPanel: '#0f1628',
+    text: '#b0bec5', textDim: '#546e7a',
+    divider: 'rgba(41,121,255,0.2)',
   },
   anime: {
     primary: '#af5fff', secondary: '#ff5fff', success: '#50fa7b',

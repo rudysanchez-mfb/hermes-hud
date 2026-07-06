@@ -27,9 +27,12 @@ export const THEMES: { id: ThemeId; labelKey: string; icon: string }[] = [
   { id: 'anime', labelKey: 'theme.anime', icon: '◎' },
 ]
 
+const VALID_THEMES: ThemeId[] = ['ai', 'hermes-official', 'blade-runner', 'fsociety', 'anime']
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemeId>(() => {
-    return (localStorage.getItem('hud-theme') as ThemeId) || 'hermes-official'
+    const stored = localStorage.getItem('hud-theme') as ThemeId | null
+    return stored && VALID_THEMES.includes(stored) ? stored : 'hermes-official'
   })
   const [scanlines, setScanlinesState] = useState(() => {
     return localStorage.getItem('hud-scanlines') === 'true'

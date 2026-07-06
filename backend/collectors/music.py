@@ -38,7 +38,10 @@ class NicotineStatus:
 class EnricherStatus:
     last_run: Optional[str] = None
     enriched: int = 0
+    with_artwork: int = 0
+    no_bio: int = 0
     total_processed: int = 0
+    artists: list[dict] = field(default_factory=list)  # recently processed
 
 @dataclass
 class Alert:
@@ -220,10 +223,43 @@ def collect_music() -> MusicPipelineState:
         if enricher_path.exists():
             data = json.loads(enricher_path.read_text(encoding="utf-8"))
             stats = data.get("stats", {})
+            processed = data.get("processed", {})
+            artist_list = []
+            enriched_count = 0
+            artwork_count = 0
+            no_bio_count = 0
+            for key, val in processed.items():
+                entry = {
+                    "name": val.get("name", "?"),
+                    "status": val.get("status", "?"),
+                }
+                if val.get("status") == "enriched":
+                    enriched_count += 1
+                    entry["chars"] = val.get("chars", 0)
+                    entry["source"] = val.get("source", "?")
+                    entry["artwork"] = val.get("artwork", False)
+                    if val.get("artwork"):
+                        artwork_count += 1
+                    else:
+                        # Infer why artwork wasn't pushed
+                        if entry["chars"] < 200:
+                            entry["reason"] = "Bio too short for artwork (< 200 chars)"
+                        else:
+                            entry["reason"] = "No Wikipedia image available"
+                elif val.get("status") == "no_bio":
+                    no_bio_count += 1
+                artist_list.append(entry)
+
+            # Sort: enriched first, then no_bio
+            artist_list.sort(key=lambda a: (0 if a["status"] == "enriched" else 1, a["name"]))
+            
             state.enricher = EnricherStatus(
                 last_run=stats.get("last_run", ""),
-                enriched=stats.get("enriched", 0),
-                total_processed=stats.get("total", 0),
+                enriched=enriched_count,
+                with_artwork=artwork_count,
+                no_bio=no_bio_count,
+                total_processed=len(processed),
+                artists=artist_list,
             )
     except Exception:
         pass

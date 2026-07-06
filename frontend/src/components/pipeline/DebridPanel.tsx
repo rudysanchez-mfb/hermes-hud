@@ -73,7 +73,7 @@ export default function DebridPanel() {
       </Box>
 
       {/* d3 Flow */}
-      <PipelineFlow services={services} transfers={transfers.length} />
+      <PipelineFlow services={services} transfers={transfers.length} alerts={alerts} />
 
       {/* Active transfers */}
       {transfers.length > 0 && (

@@ -44,26 +44,26 @@
   --hud-gradient-end: #00ffff;
 }
 
-/* ── Hermes Teal (official) ─────────────────────────────── */
+/* ── Hermes Official (dark blue — matches muiTheme.ts) ──── */
 [data-theme="hermes-official"] {
-  --hud-bg-deep: #041c1c;
-  --hud-bg-surface: #092626;
-  --hud-bg-panel: #0d3030;
-  --hud-bg-hover: #143b39;
-  --hud-primary: #ffe6cb;
-  --hud-primary-dim: #bda68e;
-  --hud-primary-glow: rgba(255, 189, 56, 0.35);
+  --hud-bg-deep: #050d1a;
+  --hud-bg-surface: #0a1424;
+  --hud-bg-panel: #0e1a2e;
+  --hud-bg-hover: #16243a;
+  --hud-primary: #2979ff;
+  --hud-primary-dim: #1c54b2;
+  --hud-primary-glow: rgba(41, 121, 255, 0.35);
   --hud-secondary: #ffbd38;
   --hud-accent: #ffbd38;
-  --hud-text: #ffe6cb;
-  --hud-text-dim: rgba(255, 230, 203, 0.55);
-  --hud-border: rgba(255, 230, 203, 0.15);
-  --hud-border-bright: rgba(255, 230, 203, 0.32);
-  --hud-success: #4ade80;
-  --hud-warning: #ffbd38;
-  --hud-error: #ff7a82;
-  --hud-gradient-start: #ffe6cb;
-  --hud-gradient-end: #ffbd38;
+  --hud-text: #d0d8e8;
+  --hud-text-dim: rgba(208, 216, 232, 0.55);
+  --hud-border: rgba(41, 121, 255, 0.15);
+  --hud-border-bright: rgba(41, 121, 255, 0.32);
+  --hud-success: #00bcd4;
+  --hud-warning: #e6a832;
+  --hud-error: #ff5252;
+  --hud-gradient-start: #1c54b2;
+  --hud-gradient-end: #2979ff;
 }
 
 /* ── Blade Runner ───────────────────────────────────────── */
@@ -88,26 +88,26 @@
   --hud-gradient-end: #ffaf00;
 }
 
-/* ── fsociety ───────────────────────────────────────────── */
+/* ── fsociety (dark blue — de-greened per Rudy) ─────────── */
 [data-theme="fsociety"] {
-  --hud-bg-deep: #000000;
-  --hud-bg-surface: #080808;
-  --hud-bg-panel: #101010;
-  --hud-bg-hover: #181818;
-  --hud-primary: #00ff00;
-  --hud-primary-dim: #008700;
-  --hud-primary-glow: rgba(0, 255, 0, 0.4);
-  --hud-secondary: #00ff00;
-  --hud-accent: #ffff00;
-  --hud-text: #c0c0c0;
-  --hud-text-dim: #505050;
-  --hud-border: rgba(0, 255, 0, 0.2);
-  --hud-border-bright: rgba(0, 255, 0, 0.45);
-  --hud-success: #00ff00;
-  --hud-warning: #ffff00;
-  --hud-error: #d70000;
-  --hud-gradient-start: #008700;
-  --hud-gradient-end: #00ff00;
+  --hud-bg-deep: #070b14;
+  --hud-bg-surface: #0a1120;
+  --hud-bg-panel: #0f1628;
+  --hud-bg-hover: #16203a;
+  --hud-primary: #2979ff;
+  --hud-primary-dim: #1c54b2;
+  --hud-primary-glow: rgba(41, 121, 255, 0.4);
+  --hud-secondary: #448aff;
+  --hud-accent: #00e5ff;
+  --hud-text: #b0bec5;
+  --hud-text-dim: #546e7a;
+  --hud-border: rgba(41, 121, 255, 0.2);
+  --hud-border-bright: rgba(41, 121, 255, 0.45);
+  --hud-success: #00e5ff;
+  --hud-warning: #ffab00;
+  --hud-error: #ff1744;
+  --hud-gradient-start: #1c54b2;
+  --hud-gradient-end: #2979ff;
 }
 
 /* ── Anime (Mewtwo) ─────────────────────────────────────── */

@@ -1,9 +1,13 @@
 import {
   Box, Stack, Typography, Chip, CircularProgress,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+  Collapse, IconButton
 } from '@mui/material'
 import { BarChart } from '@mui/x-charts/BarChart'
 import { usePipeline } from '../../hooks/usePipeline'
+import { useState } from 'react'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 import { useTheme as useMuiTheme } from '@mui/material/styles'
 import { AlertStrip, StatCard, ProgressRow, SectionHeader } from './shared'
 
@@ -140,16 +144,128 @@ export default function MusicPanel() {
       )}
 
       {/* Enricher status */}
-      <Paper variant="outlined" sx={{ p: 1.5 }}>
-        <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5, letterSpacing: '0.1em' }}>
-          Enricher
-        </Typography>
-        <Typography variant="body2">
-          {enricher.last_run
-            ? `Last run: ${new Date(enricher.last_run).toLocaleString()} · ${enricher.enriched || 0} enriched / ${enricher.total_processed || 0} total`
-            : 'No recent enricher data'}
-        </Typography>
-      </Paper>
+      {enricher.artists?.length > 0 && (
+        <Paper variant="outlined" sx={{ p: 1.5 }}>
+          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1, letterSpacing: '0.1em' }}>
+            Artist Enricher — {enricher.enriched || 0} enriched, {enricher.with_artwork || 0} w/ artwork, {enricher.no_bio || 0} no bio
+            {enricher.last_run && (
+              <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                (last: {new Date(enricher.last_run).toLocaleDateString()})
+              </Typography>
+            )}
+          </Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontSize: '0.75rem', width: 32 }} />
+                  <TableCell sx={{ fontSize: '0.75rem' }}>Artist</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>Status</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>Bio</TableCell>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>Artwork</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {enricher.artists.map((a: any, i: number) => (
+                  <EnricherRow key={i} artist={a} />
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
     </Stack>
+  )
+}
+
+// ── Collapsible enricher row ──
+
+function EnricherRow({ artist: a }: { artist: any }) {
+  const [open, setOpen] = useState(false)
+  const isEnriched = a.status === 'enriched'
+
+  return (
+    <>
+      <TableRow
+        onClick={() => setOpen(!open)}
+        sx={{
+          cursor: 'pointer',
+          '&:hover': { bgcolor: 'action.hover' },
+          bgcolor: open ? 'action.selected' : undefined,
+        }}
+      >
+        <TableCell sx={{ p: 0.5 }}>
+          <IconButton size="small" sx={{ p: 0 }}>
+            {open ? <KeyboardArrowUpIcon fontSize="small" /> : <KeyboardArrowDownIcon fontSize="small" />}
+          </IconButton>
+        </TableCell>
+        <TableCell sx={{ fontSize: '0.8rem', fontWeight: isEnriched ? 500 : 400 }}>
+          {a.name}
+        </TableCell>
+        <TableCell>
+          <Chip
+            label={isEnriched ? '✓ enriched' : '✗ no bio'}
+            size="small"
+            color={isEnriched ? 'success' : 'default'}
+            sx={{ fontSize: '0.65rem', height: 20 }}
+          />
+        </TableCell>
+        <TableCell sx={{ fontSize: '0.75rem' }}>
+          {a.chars ? `${a.chars}c` : '—'}
+        </TableCell>
+        <TableCell>
+          {isEnriched ? (
+            a.artwork
+              ? <Chip label="✓" size="small" color="primary" sx={{ fontSize: '0.65rem', height: 20, minWidth: 32 }} />
+              : <Chip label="—" size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20, minWidth: 32 }} />
+          ) : '—'}
+        </TableCell>
+      </TableRow>
+      <TableRow sx={{ '& td': { borderBottom: open ? undefined : 'none' } }}>
+        <TableCell colSpan={5} sx={{ py: 0, px: 0 }}>
+          <Collapse in={open} timeout="auto" unmountOnExit>
+            <Box sx={{ py: 1.5, px: 3, bgcolor: 'action.hover' }}>
+              {isEnriched ? (
+                <Stack spacing={0.5}>
+                  <Typography variant="caption" color="text.secondary">
+                    Wikipedia page:{' '}
+                    <Typography component="span" variant="caption" sx={{ fontWeight: 500 }}>
+                      {a.source || '?'}
+                    </Typography>
+                  </Typography>
+                  {a.description && (
+                    <Typography variant="caption" color="text.secondary">
+                      Description:{' '}
+                      <Typography component="span" variant="caption" sx={{ fontStyle: 'italic' }}>
+                        {a.description}
+                      </Typography>
+                    </Typography>
+                  )}
+                  <Typography variant="caption" color="text.secondary">
+                    Bio length: {a.chars} characters
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Artwork pushed: {a.artwork ? (
+                      <Chip label="Yes" size="small" color="success" sx={{ fontSize: '0.6rem', height: 18 }} />
+                    ) : (
+                      <Chip label="No" size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+                    )}
+                    {!a.artwork && a.reason && (
+                      <Typography component="span" variant="caption" sx={{ ml: 1, fontStyle: 'italic' }}>
+                        {a.reason}
+                      </Typography>
+                    )}
+                  </Typography>
+                </Stack>
+              ) : (
+                <Typography variant="caption" color="text.secondary">
+                  No matching Wikipedia article found for "{a.name}".
+                </Typography>
+              )}
+            </Box>
+          </Collapse>
+        </TableCell>
+      </TableRow>
+    </>
   )
 }

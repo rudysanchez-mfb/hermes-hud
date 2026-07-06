@@ -132,7 +132,7 @@ export default function DashboardPanel() {
           <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1, letterSpacing: '0.1em' }}>
             Services ({containersRunning}/{docker.total})
           </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
             {(docker.containers || []).map((c: any) => {
               const ok = c.state === 'running' && c.healthy !== false
               return (
@@ -140,12 +140,12 @@ export default function DashboardPanel() {
                   key={c.name}
                   label={c.name}
                   size="small"
-                  variant="outlined"
                   sx={{
-                    fontSize: '0.65rem', height: 22,
-                    borderColor: ok ? muiTheme.palette.success.main : muiTheme.palette.error.main,
-                    color: ok ? muiTheme.palette.success.main : muiTheme.palette.error.main,
-                    opacity: ok ? 0.9 : 1,
+                    fontSize: '0.7rem', height: 26,
+                    bgcolor: ok ? muiTheme.palette.primary.main : muiTheme.palette.error.main,
+                    color: ok ? muiTheme.palette.primary.contrastText : '#fff',
+                    fontWeight: 600,
+                    opacity: ok ? 0.85 : 1,
                   }}
                 />
               )

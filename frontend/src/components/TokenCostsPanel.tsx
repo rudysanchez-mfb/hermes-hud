@@ -124,8 +124,27 @@ function ModelCard({ m }: { m: any }) {
 export default function TokenCostsPanel() {
   const { t } = useTranslation()
   const { data, isLoading } = useApi('/token-costs', 60000)
-  const { data: billingData } = useApi('/billing', 60000)
+  const { data: billingData, mutate: mutateBilling } = useApi('/billing', 60000)
   const [expandedIframe, setExpandedIframe] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+
+  const refreshBilling = useCallback(async () => {
+    setRefreshing(true)
+    try {
+      const res = await fetch('/api/billing/refresh', { method: 'POST' })
+      if (res.ok) {
+        const fresh = await res.json()
+        mutateBilling(fresh, { revalidate: false })
+      } else {
+        // If refresh endpoint fails, just revalidate the cache
+        mutateBilling()
+      }
+    } catch {
+      mutateBilling()
+    } finally {
+      setRefreshing(false)
+    }
+  }, [mutateBilling])
 
   const toggleIframe = useCallback((key: string) => {
     setExpandedIframe((prev) => (prev === key ? null : key))
@@ -163,6 +182,24 @@ export default function TokenCostsPanel() {
       {/* Real Billing — actual receipts + API balances vs estimates */}
       {billingData && (
         <MuiPanel title="Real Billing vs Estimates" className="col-span-full">
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+            <button
+              onClick={refreshBilling}
+              disabled={refreshing}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--hud-border)',
+                color: 'var(--hud-text-dim)',
+                cursor: refreshing ? 'not-allowed' : 'pointer',
+                padding: '2px 8px',
+                fontSize: '11px',
+                borderRadius: 4,
+                opacity: refreshing ? 0.5 : 1,
+              }}
+            >
+              {refreshing ? '⟳ Refreshing…' : '⟳ Refresh'}
+            </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-[13px]">
               <thead style={{ color: 'var(--hud-text-dim)' }}>
