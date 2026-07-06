@@ -71,7 +71,7 @@ function tabPanel(tab: TabId) {
 // ── Grid layout per tab ───────────────────────────────────
 
 const GRID_CLASS: Record<TabId, string> = {
-  dashboard:   'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+  dashboard:   'grid-cols-1',
   memory:      'grid-cols-1',
   skills:      'grid-cols-1 lg:grid-cols-[2fr_1fr]',
   sessions:    'grid-cols-1',
@@ -80,8 +80,8 @@ const GRID_CLASS: Record<TabId, string> = {
   agents:      'grid-cols-1 lg:grid-cols-2',
   chat:        'grid-cols-1',
   'token-costs': 'grid-cols-1 lg:grid-cols-2',
-  debrid:      'grid-cols-1 lg:grid-cols-2',
-  music:       'grid-cols-1 lg:grid-cols-2',
+  debrid:      'grid-cols-1',
+  music:       'grid-cols-1',
   system:      'grid-cols-1',
 }
 

@@ -6,16 +6,17 @@ interface PanelProps {
   children: ReactNode
   className?: string
   noPadding?: boolean
+  fullHeight?: boolean
 }
 
-export default function MuiPanel({ title, children, noPadding = false }: PanelProps) {
+export default function MuiPanel({ title, children, noPadding = false, fullHeight = false }: PanelProps) {
   return (
     <Paper
       variant="outlined"
       sx={{
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         bgcolor: 'background.paper',
-        ...(noPadding ? {} : {}),
+        ...(fullHeight ? { height: '100%' } : {}),
       }}
     >
       <Typography

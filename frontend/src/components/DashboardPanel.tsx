@@ -83,11 +83,11 @@ export default function DashboardPanel() {
   return (
     <Stack spacing={1.5}>
       {/* ══ Spend pulse — always first ══ */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-        <StatCard label="Spend Today" value={money(spend.today_usd)} color={muiTheme.palette.warning.main} xs={3} />
-        <StatCard label="7-Day Trend" value={spend.trend_delta_pct != null ? `${spend.trend_delta_pct > 0 ? '+' : ''}${spend.trend_delta_pct}%` : '—'} xs={3} />
-        <StatCard label="All-Time" value={money(billing?.providers ? Object.values(billing.providers).reduce((s: number, p: any) => s + (p.receipt_total_all_time || 0), 0) : null)} xs={3} />
-        <StatCard label="Provider Balances" value={money(billing?.providers?.deepseek?.api_balance)} sub="DeepSeek" xs={3} />
+      <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' } }}>
+        <StatCard label="Spend Today" value={money(spend.today_usd)} color={muiTheme.palette.warning.main} />
+        <StatCard label="7-Day Trend" value={spend.trend_delta_pct != null ? `${spend.trend_delta_pct > 0 ? '+' : ''}${spend.trend_delta_pct}%` : '—'} />
+        <StatCard label="All-Time" value={money(billing?.providers ? Object.values(billing.providers).reduce((s: number, p: any) => s + (p.receipt_total_all_time || 0), 0) : null)} />
+        <StatCard label="Provider Balances" value={money(billing?.providers?.deepseek?.api_balance)} sub="DeepSeek" />
       </Box>
 
       {/* ══ Needs Attention ══ */}

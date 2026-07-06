@@ -41,20 +41,18 @@ export default function DebridPanel() {
       <AlertStrip alerts={alerts} />
 
       {/* Stat cards row */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+      <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' } }}>
         <StatCard
           label="Active Transfers"
           value={totalActive}
           color={totalActive > 0 ? muiTheme.palette.primary.main : undefined}
           sub={totalActive === 0 ? 'Idle' : undefined}
-          xs={3}
         />
         <StatCard
           label="Mounts"
           value={`${mountsOk}/${mounts.length}`}
           color={mountsOk === mounts.length ? muiTheme.palette.success.main : muiTheme.palette.error.main}
           sub={mountsOk < mounts.length ? mounts.filter((m: any) => !m.ok).map((m: any) => m.path).join(', ') : 'All healthy'}
-          xs={3}
         />
         <StatCard
           label="plex-debrid"
@@ -67,12 +65,10 @@ export default function DebridPanel() {
             />
           }
           sub={data.last_cycle ? `Last cycle: ${data.last_cycle.slice(0, 60)}...` : undefined}
-          xs={3}
         />
         <StatCard
           label="Updated"
           value={data.updated_at ? new Date(data.updated_at).toLocaleTimeString() : '—'}
-          xs={3}
         />
       </Box>
 

@@ -1,5 +1,8 @@
 """Consolidated dashboard endpoint — lean version for the overview narrative."""
 
+import asyncio
+import time
+
 from fastapi import APIRouter
 
 from backend.collectors.collect import collect_all
@@ -25,6 +28,16 @@ except TypeError:
             return lambda fn: fn
 
     router = _NoopRouter()
+
+
+# ── Single-flight response cache ───────────────────────────
+# SWR polling from multiple browser tabs caused a collector
+# stampede (measured 13-19s per request under 6 concurrent polls,
+# vs 2-5s warm). This collapses concurrent + repeat requests
+# within TTL to a single collection run. Council-approved 2026-07-05.
+_cache: dict = {"data": None, "ts": 0.0}
+_cache_lock = asyncio.Lock()
+_CACHE_TTL = 11.0  # seconds; SWR polls every 15s
 
 
 def _money(value) -> float:
@@ -121,21 +134,27 @@ def build_executive_summary(health, costs: dict, model_analytics, providers, gat
     }
 
 
-@router.get("/dashboard")
-async def get_dashboard():
+async def _build_dashboard():
     """Everything the overview narrative needs — trimmed to essentials."""
 
-    state = collect_all()
-    health = collect_health()
-    corrections = collect_corrections()
-    snapshots = load_snapshots()
-    token_costs = await get_token_costs()
-    model_analytics = collect_model_analytics(days=7)
-    providers = collect_providers()
-    gateway = collect_gateway_status()
-    docker_services = collect_docker_services()
-    debrid_summary = collect_debrid()
-    music_summary = collect_music()
+    state, health, corrections, snapshots, token_costs, model_analytics, \
+        providers, gateway, docker_services, debrid_summary, music_summary, \
+        cron_raw, projects_data = \
+        await asyncio.gather(
+            asyncio.to_thread(collect_all),
+            asyncio.to_thread(collect_health),
+            asyncio.to_thread(collect_corrections),
+            asyncio.to_thread(load_snapshots),
+            get_token_costs(),
+            asyncio.to_thread(collect_model_analytics, days=7),
+            asyncio.to_thread(collect_providers),
+            asyncio.to_thread(collect_gateway_status),
+            asyncio.to_thread(collect_docker_services),
+            asyncio.to_thread(collect_debrid),
+            asyncio.to_thread(collect_music),
+            asyncio.to_thread(collect_cron),
+            asyncio.to_thread(collect_projects),
+        )
 
     # Trim state: only keep what the narrative sections need
     lean_state = {
@@ -176,11 +195,10 @@ async def get_dashboard():
         "timeline": to_dict(state.timeline),
     }
 
-    # Cron: just jobs list
-    cron = to_dict(collect_cron())
+    # Cron: just jobs list (collected concurrently in the gather above)
+    cron = to_dict(cron_raw)
 
-    # Projects: only active + dirty for the narrative
-    projects_data = collect_projects()
+    # Projects: only active + dirty for the narrative (collected in gather)
     active_projects = [
         to_dict(p) for p in projects_data.projects
         if p.is_git and (p.activity_level == "active" or p.dirty_files > 0)
@@ -217,3 +235,30 @@ async def get_dashboard():
         "pipeline_debrid": to_dict(debrid_summary),
         "pipeline_music": to_dict(music_summary),
     }
+
+
+@router.get("/dashboard")
+async def get_dashboard():
+    """Cached dashboard endpoint — single-flight TTL cache collapses the SWR stampede.
+
+    Fast path returns cached data without touching the lock. Slow path acquires
+    the lock, double-checks freshness, then runs one collection for all waiters.
+    On collection failure, serve stale data if we ever succeeded; else propagate.
+    """
+    now = time.time()
+    if _cache["data"] is not None and now - _cache["ts"] < _CACHE_TTL:
+        return _cache["data"]
+
+    async with _cache_lock:
+        now = time.time()
+        if _cache["data"] is not None and now - _cache["ts"] < _CACHE_TTL:
+            return _cache["data"]
+        try:
+            data = await _build_dashboard()
+            _cache["data"] = data
+            _cache["ts"] = time.time()
+            return data
+        except Exception:
+            if _cache["data"] is not None:
+                return _cache["data"]
+            raise

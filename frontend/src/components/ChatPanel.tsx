@@ -99,7 +99,7 @@ export default function ChatPanel() {
   // Show loading while checking availability
   if (checkingAvailability) {
     return (
-      <MuiPanel title="Chat" className="col-span-full h-full">
+      <MuiPanel title="Chat" className="col-span-full" fullHeight>
         <div className="h-full flex items-center justify-center">
           <div className="text-[13px] animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>
             Checking chat availability...
@@ -112,7 +112,7 @@ export default function ChatPanel() {
   // Show unavailable state
   if (!chatAvailable) {
     return (
-      <MuiPanel title="Chat" className="col-span-full h-full">
+      <MuiPanel title="Chat" className="col-span-full" fullHeight>
         <div className="h-full flex items-center justify-center p-4">
           <div className="text-center max-w-md">
             <div className="text-[14px] mb-2" style={{ color: 'var(--hud-error)' }}>
@@ -134,7 +134,7 @@ export default function ChatPanel() {
   // Show error state
   if (error) {
     return (
-      <MuiPanel title="Chat" className="col-span-full h-full">
+      <MuiPanel title="Chat" className="col-span-full" fullHeight>
         <div className="h-full flex flex-col">
           <div className="p-2 text-[12px]" style={{ color: 'var(--hud-error)', background: 'var(--hud-bg-surface)' }}>
             Error: {error}
@@ -152,7 +152,7 @@ export default function ChatPanel() {
   }
 
   return (
-    <MuiPanel title="Chat" className="h-full" noPadding>
+    <MuiPanel title="Chat" noPadding fullHeight>
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <div className="w-48 shrink-0 overflow-hidden">

@@ -1,3 +1,10 @@
+/* ── Tailwind v4 utilities-only (NO Preflight — avoids MUI CssBaseline double-reset) ──
+   Restores the ~865 legacy utility classNames (grid/flex/overflow/gap/padding) used
+   across the app shell + panels. theme layer supplies spacing/color vars the utilities
+   reference; preflight is deliberately omitted so MUI's reset stays authoritative. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
 
 /* ═══════════════════════════════════════════════════════════
    HERMES HUD — Theme System

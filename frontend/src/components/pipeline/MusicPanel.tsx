@@ -41,10 +41,10 @@ export default function MusicPanel() {
       <AlertStrip alerts={alerts} />
 
       {/* Stat cards */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-        <StatCard label="Lidarr Queue" value={queue.active || 0} color={queue.active > 0 ? muiTheme.palette.warning.main : undefined} xs={3} />
-        <StatCard label="Wanted Missing" value={data.lidarr_wanted || 0} sub="albums" xs={3} />
-        <StatCard label="Active Torrents" value={activeTorrents} color={activeTorrents > 0 ? muiTheme.palette.primary.main : undefined} xs={3} />
+      <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' } }}>
+        <StatCard label="Lidarr Queue" value={queue.active || 0} color={queue.active > 0 ? muiTheme.palette.warning.main : undefined} />
+        <StatCard label="Wanted Missing" value={data.lidarr_wanted || 0} sub="albums" />
+        <StatCard label="Active Torrents" value={activeTorrents} color={activeTorrents > 0 ? muiTheme.palette.primary.main : undefined} />
         <StatCard
           label="Nicotine+"
           value={
@@ -56,7 +56,6 @@ export default function MusicPanel() {
             />
           }
           sub={nicotine.running ? `${nicotine.recent_files || 0} files (30m)` : undefined}
-          xs={3}
         />
       </Box>
 
