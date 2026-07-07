@@ -5,10 +5,7 @@ import {
 import { StatCard } from './pipeline/shared'
 import { useTheme as useMuiTheme } from '@mui/material/styles'
 import { useApi } from '../hooks/useApi'
-
-function money(v: number | null | undefined): string {
-  return '$' + ((v || 0)).toFixed(2)
-}
+import { formatMoney } from '../lib/utils'
 
 export default function DashboardPanel() {
   const { data, error } = useApi<any>('/dashboard', 30000)
@@ -84,10 +81,10 @@ export default function DashboardPanel() {
     <Stack spacing={1.5}>
       {/* ══ Spend pulse — always first ══ */}
       <Box sx={{ display: 'grid', gap: 1, gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' } }}>
-        <StatCard label="Spend Today" value={money(spend.today_usd)} color={muiTheme.palette.warning.main} />
+        <StatCard label="Spend Today" value={formatMoney(spend.today_usd)} color={muiTheme.palette.warning.main} />
         <StatCard label="7-Day Trend" value={spend.trend_delta_pct != null ? `${spend.trend_delta_pct > 0 ? '+' : ''}${spend.trend_delta_pct}%` : '—'} />
-        <StatCard label="All-Time" value={money(billing?.providers ? Object.values(billing.providers).reduce((s: number, p: any) => s + (p.receipt_total_all_time || 0), 0) : null)} />
-        <StatCard label="Provider Balances" value={money(billing?.providers?.deepseek?.api_balance)} sub="DeepSeek" />
+        <StatCard label="All-Time" value={formatMoney(billing?.providers ? Object.values(billing.providers).reduce((s: number, p: any) => s + (p.receipt_total_all_time || 0), 0) : null)} />
+        <StatCard label="Provider Balances" value={formatMoney(billing?.providers?.deepseek?.api_balance)} sub="DeepSeek" />
       </Box>
 
       {/* ══ Needs Attention ══ */}

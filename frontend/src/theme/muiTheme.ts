@@ -16,35 +16,35 @@ const PALETTES: Record<ThemeId, Palette> = {
     warning: '#e6c300', error: '#ff4444',
     bgDeep: '#0a0a12', bgPanel: '#141830',
     text: '#dadada', textDim: '#6a7490',
-    divider: 'rgba(0,212,255,0.25)',
+    divider: 'rgba(0,212,255,0.1)',
   },
   'hermes-official': {
     primary: '#2979ff', secondary: '#ffbd38', success: '#00bcd4',
     warning: '#e6a832', error: '#ff5252',
     bgDeep: '#050d1a', bgPanel: '#0e1a2e',
     text: '#d0d8e8', textDim: 'rgba(208,216,232,0.55)',
-    divider: 'rgba(41,121,255,0.15)',
+    divider: 'rgba(41,121,255,0.08)',
   },
   'blade-runner': {
     primary: '#ffaf00', secondary: '#ffd7af', success: '#00afff',
     warning: '#d77800', error: '#ff0087',
     bgDeep: '#0a0800', bgPanel: '#1c1810',
     text: '#ffd7af', textDim: '#8a7a60',
-    divider: 'rgba(255,175,0,0.25)',
+    divider: 'rgba(255,175,0,0.1)',
   },
   fsociety: {
     primary: '#2979ff', secondary: '#448aff', success: '#00e5ff',
     warning: '#ffab00', error: '#ff1744',
     bgDeep: '#070b14', bgPanel: '#0f1628',
     text: '#b0bec5', textDim: '#546e7a',
-    divider: 'rgba(41,121,255,0.2)',
+    divider: 'rgba(41,121,255,0.1)',
   },
   anime: {
     primary: '#af5fff', secondary: '#ff5fff', success: '#50fa7b',
     warning: '#d9d95b', error: '#ff5555',
     bgDeep: '#0d001a', bgPanel: '#1a0030',
     text: '#e0d0f0', textDim: '#7a6a9a',
-    divider: 'rgba(175,95,255,0.25)',
+    divider: 'rgba(175,95,255,0.1)',
   },
 }
 
@@ -74,5 +74,31 @@ export function buildMuiTheme(hudTheme: ThemeId): Theme {
       fontSize: 15,
     },
     shape: { borderRadius: 4 },
+    components: {
+      MuiPaper: {
+        styleOverrides: {
+          outlined: ({ theme }) => ({
+            borderColor: theme.palette.divider,
+          }),
+        },
+      },
+      MuiAccordion: {
+        styleOverrides: {
+          root: ({ theme }) => ({
+            '&::before': { display: 'none' },
+            '&.MuiAccordion-outlined': {
+              borderColor: theme.palette.divider,
+            },
+          }),
+        },
+      },
+      MuiChip: {
+        styleOverrides: {
+          outlined: ({ theme }) => ({
+            borderColor: theme.palette.divider,
+          }),
+        },
+      },
+    },
   })
 }

@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import { useApi } from '../hooks/useApi'
 import MuiPanel, { Sparkline } from './MuiPanel'
-import { formatTokens } from '../lib/utils'
+import { formatTokens, formatMoney, formatNumber } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
 function StatCard({ value, label }: { value: string | number; label: string }) {
@@ -14,16 +14,9 @@ function StatCard({ value, label }: { value: string | number; label: string }) {
   )
 }
 
-function money(value: number | null | undefined) {
-  return `$${(value || 0).toFixed(2)}`
-}
-
 // Currency-aware amount (handles USD, CNY, and non-monetary units).
 function amount(value: number | null | undefined, currency?: string | null) {
-  const v = value || 0
-  if (currency === 'CNY') return `¥${v.toFixed(2)}`
-  if (!currency || currency === 'USD') return `$${v.toFixed(2)}`
-  return `${v.toFixed(2)} ${currency}`
+  return formatMoney(value, currency || 'USD')
 }
 
 // Classify what kind of "balance/usage" number a provider exposes.
@@ -57,7 +50,7 @@ function DeltaBadge({ value, pct }: { value: number; pct?: number | null }) {
   const sign = value > 0 ? '+' : ''
   return (
     <span style={{ color }}>
-      {sign}{money(value)}{pct !== null && pct !== undefined ? ` (${sign}${pct.toFixed(1)}%)` : ''}
+      {sign}{formatMoney(value)}{pct !== null && pct !== undefined ? ` (${sign}${pct.toFixed(1)}%)` : ''}
     </span>
   )
 }
@@ -81,7 +74,7 @@ function ModelCard({ m }: { m: any }) {
       <div className="flex items-center justify-between mb-2">
         <span className="font-bold text-[13px]" style={{ color: 'var(--hud-primary)' }}>{m.model}</span>
         <span className="text-[13px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-hover)', color: pricingColor }}>
-          {isFree ? t('tokenCosts.free') : money(m.billed_cost_usd ?? m.cost)}
+          {isFree ? t('tokenCosts.free') : formatMoney(m.billed_cost_usd ?? m.cost)}
         </span>
       </div>
       <div className="grid grid-cols-3 gap-2 text-[13px] mb-2">
@@ -96,16 +89,16 @@ function ModelCard({ m }: { m: any }) {
           <DetailRow label={t('tokenCosts.cacheRead')} value={formatTokens(m.cache_read_tokens)} />
         )}
         {m.cache_savings_usd > 0 && (
-          <DetailRow label={t('tokenCosts.cacheSaved')} value={money(m.cache_savings_usd)} tone="var(--hud-success)" />
+          <DetailRow label={t('tokenCosts.cacheSaved')} value={formatMoney(m.cache_savings_usd)} tone="var(--hud-success)" />
         )}
       </div>
       {!isFree && (
         <div className="mt-2 pt-2 text-[13px] space-y-0.5" style={{ borderTop: '1px solid var(--hud-border)' }}>
-          <DetailRow label={t('tokenCosts.estimated')} value={money(m.estimated_cost_usd)} />
-          <DetailRow label={t('tokenCosts.actual')} value={money(m.actual_cost_usd)} />
+          <DetailRow label={t('tokenCosts.estimated')} value={formatMoney(m.estimated_cost_usd)} />
+          <DetailRow label={t('tokenCosts.actual')} value={formatMoney(m.actual_cost_usd)} />
           <DetailRow label={t('tokenCosts.delta')} value={<DeltaBadge value={m.actual_delta_usd || 0} pct={m.actual_delta_pct} />} />
           <div className="font-bold">
-            <DetailRow label={t('tokenCosts.billed')} value={money(m.billed_cost_usd)} tone="var(--hud-accent)" />
+            <DetailRow label={t('tokenCosts.billed')} value={formatMoney(m.billed_cost_usd)} tone="var(--hud-accent)" />
           </div>
         </div>
       )}
@@ -280,8 +273,8 @@ export default function TokenCostsPanel() {
                                style={{ color: 'var(--hud-text-dim)', textDecoration: 'none', fontSize: '9px' }}>↗</a>
                           )}
                         </td>
-                        <td className="py-2 pr-3 text-right">{money(r.est)}</td>
-                        <td className="py-2 pr-3 text-right" style={{ color: r.actual > 0 ? 'var(--hud-accent)' : 'var(--hud-text-dim)' }}>{r.actual > 0 ? money(r.actual) : '—'}</td>
+                        <td className="py-2 pr-3 text-right">{formatMoney(r.est)}</td>
+                        <td className="py-2 pr-3 text-right" style={{ color: r.actual > 0 ? 'var(--hud-accent)' : 'var(--hud-text-dim)' }}>{r.actual > 0 ? formatMoney(r.actual) : '—'}</td>
                         <td className="py-2 pr-3 text-right" style={{ color: r.hasData ? 'var(--hud-success)' : 'var(--hud-text-dim)' }}>
                           {r.kind === 'usage'
                             ? <span>{formatTokens(r.usageTokens)} <span style={{ color: 'var(--hud-text-dim)', fontSize: '11px' }}>tok/30d</span></span>
@@ -379,10 +372,10 @@ export default function TokenCostsPanel() {
       )}
 
       {/* Today */}
-      <MuiPanel title={`${t('tokenCosts.today')} — ${money(today.billed_cost_usd ?? today.estimated_cost_usd)}`}>
+      <MuiPanel title={`${t('tokenCosts.today')} — ${formatMoney(today.billed_cost_usd ?? today.estimated_cost_usd)}`}>
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <StatCard value={today.session_count} label={t('tokenCosts.sessions')} />
-          <StatCard value={today.message_count} label={t('tokenCosts.messages')} />
+          <StatCard value={formatNumber(today.session_count)} label={t('tokenCosts.sessions')} />
+          <StatCard value={formatNumber(today.message_count)} label={t('tokenCosts.messages')} />
         </div>
         <div className="text-[13px] space-y-1">
           <DetailRow label={t('tokenCosts.input')} value={formatTokens(today.input_tokens)} />
@@ -393,37 +386,37 @@ export default function TokenCostsPanel() {
           </div>
         </div>
         <div className="mt-3 text-[20px] font-bold text-center" style={{ color: 'var(--hud-accent)' }}>
-          {money(today.billed_cost_usd ?? today.estimated_cost_usd)}
+          {formatMoney(today.billed_cost_usd ?? today.estimated_cost_usd)}
         </div>
         <div className="text-[13px] text-center" style={{ color: 'var(--hud-text-dim)' }}>{t('tokenCosts.billedToday')}</div>
       </MuiPanel>
 
       {/* All time */}
-      <MuiPanel title={`${t('tokenCosts.total')} — ${money(allTime.billed_cost_usd ?? allTime.estimated_cost_usd)}`}>
+      <MuiPanel title={`${t('tokenCosts.total')} — ${formatMoney(allTime.billed_cost_usd ?? allTime.estimated_cost_usd)}`}>
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <StatCard value={allTime.session_count} label={t('tokenCosts.sessions')} />
-          <StatCard value={(allTime.message_count || 0).toLocaleString()} label={t('tokenCosts.messages')} />
+          <StatCard value={formatNumber(allTime.session_count)} label={t('tokenCosts.sessions')} />
+          <StatCard value={formatNumber(allTime.message_count || 0)} label={t('tokenCosts.messages')} />
           <StatCard value={formatTokens(allTime.total_tokens)} label={t('tokenCosts.totalTokens')} />
-          <StatCard value={(allTime.tool_call_count || 0).toLocaleString()} label={t('tokenCosts.toolCalls')} />
+          <StatCard value={formatNumber(allTime.tool_call_count || 0)} label={t('tokenCosts.toolCalls')} />
         </div>
 
         <div className="text-[13px] space-y-0.5 mt-2 pt-2" style={{ borderTop: '1px solid var(--hud-border)' }}>
-          <DetailRow label={t('tokenCosts.estimated')} value={money(allTime.estimated_cost_usd)} />
-          <DetailRow label={t('tokenCosts.actual')} value={`${money(allTime.actual_cost_usd)} · ${allTime.actual_coverage_pct || 0}%`} />
+          <DetailRow label={t('tokenCosts.estimated')} value={formatMoney(allTime.estimated_cost_usd)} />
+          <DetailRow label={t('tokenCosts.actual')} value={`${formatMoney(allTime.actual_cost_usd)} · ${allTime.actual_coverage_pct || 0}%`} />
           <DetailRow label={t('tokenCosts.delta')} value={<DeltaBadge value={allTime.actual_delta_usd || 0} pct={allTime.actual_delta_pct} />} />
-          <DetailRow label={t('tokenCosts.cacheSaved')} value={money(allTime.cache_savings_usd)} tone="var(--hud-success)" />
+          <DetailRow label={t('tokenCosts.cacheSaved')} value={formatMoney(allTime.cache_savings_usd)} tone="var(--hud-success)" />
         </div>
 
         {/* Cost by type */}
         <div className="text-[13px] space-y-0.5 mt-2 pt-2" style={{ borderTop: '1px solid var(--hud-border)' }}>
-          <DetailRow label={t('tokenCosts.inputCost')} value={money(totalInputCost)} tone="var(--hud-primary)" />
-          <DetailRow label={t('tokenCosts.outputCost')} value={money(totalOutputCost)} tone="var(--hud-accent)" />
-          <DetailRow label={t('tokenCosts.cacheRead')} value={money(totalCacheRCost)} tone="var(--hud-success)" />
-          <DetailRow label={t('tokenCosts.cacheWrite')} value={money(totalCacheWCost)} tone="var(--hud-warning)" />
+          <DetailRow label={t('tokenCosts.inputCost')} value={formatMoney(totalInputCost)} tone="var(--hud-primary)" />
+          <DetailRow label={t('tokenCosts.outputCost')} value={formatMoney(totalOutputCost)} tone="var(--hud-accent)" />
+          <DetailRow label={t('tokenCosts.cacheRead')} value={formatMoney(totalCacheRCost)} tone="var(--hud-success)" />
+          <DetailRow label={t('tokenCosts.cacheWrite')} value={formatMoney(totalCacheWCost)} tone="var(--hud-warning)" />
         </div>
 
         <div className="mt-3 text-[20px] font-bold text-center" style={{ color: 'var(--hud-accent)' }}>
-          {money(allTime.billed_cost_usd ?? allTime.estimated_cost_usd)}
+          {formatMoney(allTime.billed_cost_usd ?? allTime.estimated_cost_usd)}
         </div>
         <div className="text-[13px] text-center" style={{ color: 'var(--hud-text-dim)' }}>
           {t('tokenCosts.billedAllTime')} ({byModel.length} {t('tokenCosts.models')})
@@ -433,12 +426,12 @@ export default function TokenCostsPanel() {
       {/* Trend summary */}
       <MuiPanel title={t('tokenCosts.trend')}>
         <div className="grid grid-cols-2 gap-3 mb-3">
-          <StatCard value={money(trendSummary.recent_7d_cost_usd)} label={t('tokenCosts.last7Days')} />
-          <StatCard value={money(trendSummary.previous_7d_cost_usd)} label={t('tokenCosts.prev7Days')} />
+          <StatCard value={formatMoney(trendSummary.recent_7d_cost_usd)} label={t('tokenCosts.last7Days')} />
+          <StatCard value={formatMoney(trendSummary.previous_7d_cost_usd)} label={t('tokenCosts.prev7Days')} />
         </div>
         <div className="text-[13px] space-y-1">
           <DetailRow label={t('tokenCosts.change')} value={<DeltaBadge value={trendSummary.delta_usd || 0} pct={trendSummary.delta_pct} />} />
-          <DetailRow label={t('tokenCosts.cacheSaved')} value={money(allTime.cache_savings_usd)} tone="var(--hud-success)" />
+          <DetailRow label={t('tokenCosts.cacheSaved')} value={formatMoney(allTime.cache_savings_usd)} tone="var(--hud-success)" />
           <DetailRow label={t('tokenCosts.actualCoverage')} value={`${allTime.actual_coverage_pct || 0}%`} />
         </div>
       </MuiPanel>
@@ -467,9 +460,9 @@ export default function TokenCostsPanel() {
                     </td>
                     <td className="py-2 pr-3">{s.model}</td>
                     <td className="py-2 pr-3 text-right">{formatTokens(s.total_tokens)}</td>
-                    <td className="py-2 pr-3 text-right">{money(s.estimated_cost_usd)}</td>
-                    <td className="py-2 pr-3 text-right">{s.actual_cost_usd > 0 ? money(s.actual_cost_usd) : '—'}</td>
-                    <td className="py-2 text-right font-bold" style={{ color: 'var(--hud-accent)' }}>{money(s.billed_cost_usd)}</td>
+                    <td className="py-2 pr-3 text-right">{formatMoney(s.estimated_cost_usd)}</td>
+                    <td className="py-2 pr-3 text-right">{s.actual_cost_usd > 0 ? formatMoney(s.actual_cost_usd) : '—'}</td>
+                    <td className="py-2 text-right font-bold" style={{ color: 'var(--hud-accent)' }}>{formatMoney(s.billed_cost_usd)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -502,7 +495,7 @@ export default function TokenCostsPanel() {
             {dailyTrend.slice(-10).map((d: any) => (
               <div key={d.date} className="text-center py-1" style={{ background: 'var(--hud-bg-panel)' }}>
                 <div style={{ color: 'var(--hud-text-dim)' }}>{d.date.slice(5)}</div>
-                <div style={{ color: 'var(--hud-accent)' }}>{money(d.billed_cost_usd ?? d.cost)}</div>
+                <div style={{ color: 'var(--hud-accent)' }}>{formatMoney(d.billed_cost_usd ?? d.cost)}</div>
                 <div className="text-[13px]">{formatTokens(d.tokens)}</div>
               </div>
             ))}

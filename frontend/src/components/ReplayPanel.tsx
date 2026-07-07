@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import MuiPanel from './MuiPanel'
 import { useApi } from '../hooks/useApi'
 import type { ReplayArtifact, ReplayDetail, ReplayEvent, ReplayRun, ReplayRunsResponse } from '../types/replay'
+import { formatMoney } from '../lib/utils'
 import VerifyPanel from './VerifyPanel'
 
 type ReplayFilter = 'all' | 'successful' | 'failed' | 'tools' | 'files' | 'tests' | 'high-cost' | 'recent'
@@ -34,7 +35,7 @@ function formatDuration(value?: number | null) {
 
 function formatCost(value?: number | null) {
   if (value === null || value === undefined) return 'Unknown'
-  return `$${value.toFixed(4)}`
+  return formatMoney(value, 'USD', 4)
 }
 
 function compactDate(value?: string | null) {

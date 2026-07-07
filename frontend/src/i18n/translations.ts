@@ -317,6 +317,8 @@ export const translations = {
     'skills.totalUses': 'total uses',
     'skills.mostUsed': 'Most Used',
     'skills.noSkills': 'No skills found.',
+    'skills.filterPlaceholder': 'Filter skills...',
+    'skills.noMatches': 'No skills match your filter.',
 
     // Cron
     'cron.title': 'Cron',
@@ -901,6 +903,8 @@ export const translations = {
     'skills.totalUses': '总使用次数',
     'skills.mostUsed': '最常用',
     'skills.noSkills': '未找到技能。',
+    'skills.filterPlaceholder': '筛选技能...',
+    'skills.noMatches': '没有匹配的技能。',
 
     // Cron
     'cron.title': '定时任务',

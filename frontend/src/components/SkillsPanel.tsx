@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { useApi } from '../hooks/useApi'
 import Panel from './MuiPanel'
 import SkillModal from './SkillModal'
-import { timeAgo, formatSize } from '../lib/utils'
+import { timeAgo, formatSize, formatNumber } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
 const hoverOn = (e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.background = 'var(--hud-bg-hover)' }
@@ -24,6 +24,17 @@ interface Skill {
   author: string
 }
 
+function skillMatchesFilter(skill: Skill, filter: string): boolean {
+  const haystack = [
+    skill.name,
+    skill.description,
+    skill.category,
+    skill.author,
+    ...(skill.triggers || []),
+  ].join(' ').toLowerCase()
+  return haystack.includes(filter)
+}
+
 function SkillCard({ skill, onClick }: { skill: Skill; onClick: () => void }) {
   const { t } = useTranslation()
   const linkedCount = Object.values(skill.linked_files).reduce((sum, arr) => sum + arr.length, 0)
@@ -34,7 +45,7 @@ function SkillCard({ skill, onClick }: { skill: Skill; onClick: () => void }) {
       className="rounded cursor-pointer p-3"
       style={{
         background: 'var(--hud-bg-deep)',
-        border: '1px solid var(--hud-border)',
+        border: '1px solid var(--hud-border-subtle)',
       }}
       onMouseEnter={hoverOn}
       onMouseLeave={hoverOff}
@@ -53,7 +64,7 @@ function SkillCard({ skill, onClick }: { skill: Skill; onClick: () => void }) {
       <div className="flex items-center gap-3 text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>
         {skill.usage_count > 0 && (
           <span>
-            <strong style={{ color: 'var(--hud-primary)' }}>{skill.usage_count}</strong> {t('skills.uses')}
+            <strong style={{ color: 'var(--hud-primary)' }}>{formatNumber(skill.usage_count)}</strong> {t('skills.uses')}
           </span>
         )}
         {skill.last_used && (
@@ -87,12 +98,16 @@ function CategoryRow({
   const totalLinked = skills.reduce((sum, s) => sum + Object.values(s.linked_files || {}).reduce((a, b) => a + b.length, 0), 0)
 
   return (
-    <div className="rounded overflow-hidden" style={{ border: '1px solid var(--hud-border)' }}>
+    <div className="rounded overflow-hidden" style={{ background: 'var(--hud-bg-deep)' }}>
       {/* Header */}
       <button
+        type="button"
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-3 py-2 text-left cursor-pointer"
-        style={{ background: isExpanded ? 'var(--hud-bg-hover)' : 'transparent' }}
+        style={{
+          background: isExpanded ? 'var(--hud-bg-hover)' : 'transparent',
+          border: 'none',
+        }}
       >
         <span className="text-[13px] w-4" style={{ color: 'var(--hud-primary)' }}>
           {isExpanded ? '▼' : '▶'}
@@ -104,21 +119,21 @@ function CategoryRow({
         {/* Stats pills */}
         <div className="flex items-center gap-2">
           <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-text-dim)' }}>
-            {skills.length} {skills.length === 1 ? t('skills.skill') : t('skills.skills')}
+            {formatNumber(skills.length)} {skills.length === 1 ? t('skills.skill') : t('skills.skills')}
           </span>
           {totalUsage > 0 && (
             <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-primary)' }}>
-              {totalUsage} {t('skills.uses')}
+              {formatNumber(totalUsage)} {t('skills.uses')}
             </span>
           )}
           {customCount > 0 && (
             <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-accent)', color: 'var(--hud-bg-deep)' }}>
-              {customCount} {t('dashboard.custom')}
+              {formatNumber(customCount)} {t('dashboard.custom')}
             </span>
           )}
           {totalLinked > 0 && (
             <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-text-dim)' }}>
-              {totalLinked} {t('skills.files')}
+              {formatNumber(totalLinked)} {t('skills.files')}
             </span>
           )}
         </div>
@@ -145,6 +160,9 @@ export default function SkillsPanel() {
   const { data, isLoading } = useApi('/skills', 60000)
   const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
   const [selectedSkill, setSelectedSkill] = useState<string | null>(null)
+  const [filterQuery, setFilterQuery] = useState('')
+
+  const filter = filterQuery.trim().toLowerCase()
 
   const toggleCat = (cat: string) => {
     setExpandedCats(prev => {
@@ -169,8 +187,30 @@ export default function SkillsPanel() {
       .map(([cat]) => cat)
   }, [catCounts])
 
+  const filteredByCategory: Record<string, Skill[]> = useMemo(() => {
+    if (!filter) return byCategory
+
+    const next: Record<string, Skill[]> = {}
+    for (const cat of sortedCats) {
+      const skills = byCategory[cat] || []
+      const categoryHit = cat.toLowerCase().includes(filter)
+      const matchedSkills = categoryHit ? skills : skills.filter(s => skillMatchesFilter(s, filter))
+      if (matchedSkills.length > 0) next[cat] = matchedSkills
+    }
+    return next
+  }, [byCategory, filter, sortedCats])
+
+  const visibleCats = useMemo(() => {
+    return filter ? sortedCats.filter(cat => filteredByCategory[cat]?.length) : sortedCats
+  }, [filter, filteredByCategory, sortedCats])
+
   const totalUsage = data?.total_usage || 0
   const mostUsed: Skill[] = data?.most_used || []
+
+  const filteredMostUsed = useMemo(() => {
+    if (!filter) return mostUsed
+    return mostUsed.filter(skill => skillMatchesFilter(skill, filter))
+  }, [filter, mostUsed])
 
   if (isLoading && !data) {
     return <Panel title={t('skills.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('skills.scanning')}</div></Panel>
@@ -186,40 +226,53 @@ export default function SkillsPanel() {
         {/* Summary bar */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-primary)' }}>
-            {data?.total || 0} {t('skills.total')}
+            {formatNumber(data?.total || 0)} {t('skills.total')}
           </span>
           <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-accent)' }}>
-            {data?.custom_count || 0} {t('dashboard.custom')}
+            {formatNumber(data?.custom_count || 0)} {t('dashboard.custom')}
           </span>
           <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-text-dim)' }}>
-            {sortedCats.length} {t('skills.categories')}
+            {formatNumber(visibleCats.length)} {t('skills.categories')}
           </span>
           {totalUsage > 0 && (
             <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-primary)' }}>
-              {totalUsage} {t('skills.totalUses')}
+              {formatNumber(totalUsage)} {t('skills.totalUses')}
             </span>
           )}
+          <input
+            type="search"
+            value={filterQuery}
+            onChange={e => setFilterQuery(e.target.value)}
+            placeholder={t('skills.filterPlaceholder')}
+            className="ml-auto w-full sm:w-56 px-2 py-1 text-[13px] outline-none"
+            style={{
+              background: 'var(--hud-bg-deep)',
+              border: '1px solid var(--hud-border-subtle)',
+              color: 'var(--hud-text)',
+            }}
+          />
         </div>
 
         {/* Most used skills */}
-        {mostUsed.length > 0 && (
+        {filteredMostUsed.length > 0 && (
           <div className="mb-4">
             <div className="text-[12px] uppercase tracking-wider mb-2" style={{ color: 'var(--hud-text-dim)' }}>
               {t('skills.mostUsed')}
             </div>
             <div className="flex flex-wrap gap-2">
-              {mostUsed.map((skill: Skill) => (
+              {filteredMostUsed.map((skill: Skill) => (
                 <button
+                  type="button"
                   key={skill.name}
                   onClick={() => setSelectedSkill(skill.name)}
                   className="text-[12px] px-2 py-1 cursor-pointer"
                   style={{
-                    background: 'var(--hud-bg-deep)',
-                    border: '1px solid var(--hud-border)',
+                    background: 'var(--hud-bg-panel)',
+                    border: '1px solid var(--hud-border-subtle)',
                     color: 'var(--hud-text)',
                   }}
                 >
-                  <span style={{ color: 'var(--hud-primary)' }}>{skill.usage_count}</span>
+                  <span style={{ color: 'var(--hud-primary)' }}>{formatNumber(skill.usage_count)}</span>
                   <span className="ml-1" style={{ color: 'var(--hud-text-dim)' }}>{skill.name}</span>
                 </button>
               ))}
@@ -229,11 +282,11 @@ export default function SkillsPanel() {
 
         {/* Category accordion */}
         <div className="space-y-2">
-          {sortedCats.map(cat => (
+          {visibleCats.map(cat => (
             <CategoryRow
               key={cat}
               category={cat}
-              skills={byCategory[cat] || []}
+              skills={filteredByCategory[cat] || []}
               isExpanded={expandedCats.has(cat)}
               onSkillClick={(name) => setSelectedSkill(name)}
               onToggle={() => toggleCat(cat)}
@@ -241,8 +294,10 @@ export default function SkillsPanel() {
           ))}
         </div>
 
-        {sortedCats.length === 0 && (
-          <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>{t('skills.noSkills')}</div>
+        {visibleCats.length === 0 && (
+          <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
+            {filter ? t('skills.noMatches') : t('skills.noSkills')}
+          </div>
         )}
       </Panel>
     </>

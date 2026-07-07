@@ -16,6 +16,7 @@ export default function MuiPanel({ title, children, noPadding = false, fullHeigh
       sx={{
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         bgcolor: 'background.paper',
+        borderColor: 'var(--hud-border-subtle)',
         ...(fullHeight ? { height: '100%' } : {}),
       }}
     >

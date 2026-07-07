@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from 'react'
 import { useApi } from '../hooks/useApi'
 import MuiPanel from './MuiPanel'
-import { formatDur, formatTokens, timeAgo } from '../lib/utils'
+import { formatDur, formatTokens, formatMoney, timeAgo } from '../lib/utils'
 import { useTranslation } from '../i18n'
 
 interface ModelInfo {
@@ -218,7 +218,7 @@ export default function ModelInfoPanel() {
     value !== null ? (
       <div className="flex justify-between py-0.5 text-[13px]">
         <span style={{ color: 'var(--hud-text-dim)' }}>{label}</span>
-        <span>${value.toFixed(2)} / 1M</span>
+        <span>{formatMoney(value)} / 1M</span>
       </div>
     ) : null
 
@@ -349,8 +349,8 @@ export default function ModelInfoPanel() {
                 [t('modelInfo.models'), analytics.total_models],
                 [t('modelInfo.sessions'), analytics.total_sessions],
                 [t('modelInfo.tokens'), formatTokens(analytics.total_tokens)],
-                [t('modelInfo.estimated'), `$${analytics.total_estimated_cost_usd.toFixed(2)}`],
-                [t('modelInfo.actual'), `$${analytics.total_actual_cost_usd.toFixed(2)}`],
+                [t('modelInfo.estimated'), formatMoney(analytics.total_estimated_cost_usd)],
+                [t('modelInfo.actual'), formatMoney(analytics.total_actual_cost_usd)],
               ].map(([label, value]) => (
                 <div key={String(label)} className="p-2 border" style={{ borderColor: 'var(--hud-border)' }}>
                   <div className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--hud-text-dim)' }}>{label}</div>

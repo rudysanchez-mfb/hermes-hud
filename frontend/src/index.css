@@ -35,8 +35,9 @@
   --hud-accent: #ffd700;
   --hud-text: #dadada;
   --hud-text-dim: #6a7490;
-  --hud-border: rgba(0, 212, 255, 0.25);
-  --hud-border-bright: rgba(0, 212, 255, 0.5);
+  --hud-border: rgba(0, 212, 255, 0.1);
+  --hud-border-bright: rgba(0, 212, 255, 0.35);
+  --hud-border-subtle: rgba(0, 212, 255, 0.05);
   --hud-success: #00ffaa;
   --hud-warning: #ffd700;
   --hud-error: #ff4444;
@@ -57,8 +58,9 @@
   --hud-accent: #ffbd38;
   --hud-text: #d0d8e8;
   --hud-text-dim: rgba(208, 216, 232, 0.55);
-  --hud-border: rgba(41, 121, 255, 0.15);
-  --hud-border-bright: rgba(41, 121, 255, 0.32);
+  --hud-border: rgba(41, 121, 255, 0.08);
+  --hud-border-bright: rgba(41, 121, 255, 0.22);
+  --hud-border-subtle: rgba(41, 121, 255, 0.04);
   --hud-success: #00bcd4;
   --hud-warning: #e6a832;
   --hud-error: #ff5252;
@@ -79,8 +81,9 @@
   --hud-accent: #ff0087;
   --hud-text: #ffd7af;
   --hud-text-dim: #8a7a60;
-  --hud-border: rgba(255, 175, 0, 0.25);
-  --hud-border-bright: rgba(255, 175, 0, 0.5);
+  --hud-border: rgba(255, 175, 0, 0.1);
+  --hud-border-bright: rgba(255, 175, 0, 0.35);
+  --hud-border-subtle: rgba(255, 175, 0, 0.05);
   --hud-success: #00afff;
   --hud-warning: #ff8700;
   --hud-error: #ff0087;
@@ -101,8 +104,9 @@
   --hud-accent: #00e5ff;
   --hud-text: #b0bec5;
   --hud-text-dim: #546e7a;
-  --hud-border: rgba(41, 121, 255, 0.2);
-  --hud-border-bright: rgba(41, 121, 255, 0.45);
+  --hud-border: rgba(41, 121, 255, 0.1);
+  --hud-border-bright: rgba(41, 121, 255, 0.28);
+  --hud-border-subtle: rgba(41, 121, 255, 0.05);
   --hud-success: #00e5ff;
   --hud-warning: #ffab00;
   --hud-error: #ff1744;
@@ -123,8 +127,9 @@
   --hud-accent: #ff79c6;
   --hud-text: #e0d0f0;
   --hud-text-dim: #7a6a9a;
-  --hud-border: rgba(175, 95, 255, 0.25);
-  --hud-border-bright: rgba(175, 95, 255, 0.5);
+  --hud-border: rgba(175, 95, 255, 0.1);
+  --hud-border-bright: rgba(175, 95, 255, 0.35);
+  --hud-border-subtle: rgba(175, 95, 255, 0.05);
   --hud-success: #50fa7b;
   --hud-warning: #f1fa8c;
   --hud-error: #ff5555;
@@ -143,6 +148,22 @@ body {
   color: var(--hud-text);
   overflow: hidden;
   height: 100vh;
+}
+
+/* Tailwind Preflight is off (MUI CssBaseline owns the reset) — strip native button chrome */
+button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: none;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--hud-primary);
+  outline-offset: 2px;
 }
 
 #root {

@@ -13,6 +13,7 @@ interface FlowNode {
   label: string
   x: number
   y: number
+  labelPlacement?: 'above' | 'below'
 }
 
 interface FlowEdge {
@@ -24,9 +25,9 @@ interface FlowEdge {
 const NODES: FlowNode[] = [
   { id: 'watchlist',   label: 'Watchlist',     x: 65,  y: 52 },
   { id: 'plex-debrid', label: 'plex-debrid',   x: 235, y: 52 },
-  { id: 'premiumize',  label: 'Premiumize',    x: 445, y: 4 },
-  { id: 'torbox',      label: 'TorBox',        x: 445, y: 52 },
-  { id: 'debridlink',  label: 'DebridLink',    x: 445, y: 100 },
+  { id: 'premiumize',  label: 'Premiumize',    x: 415, y: -10, labelPlacement: 'above' },
+  { id: 'torbox',      label: 'TorBox',        x: 415, y: 52 },
+  { id: 'debridlink',  label: 'DebridLink',    x: 415, y: 115, labelPlacement: 'below' },
   { id: 'mergerfs',    label: 'mergerfs',      x: 595, y: 52 },
   { id: 'plex',        label: 'Plex',          x: 755, y: 52 },
 ]
@@ -41,6 +42,28 @@ const EDGES: FlowEdge[] = [
   { from: 'debridlink', to: 'mergerfs', active: false },
   { from: 'mergerfs', to: 'plex', active: true },
 ]
+
+const VIEWBOX = { width: 820, height: 210 }
+const LABEL_GAP = 10
+const LABEL_HEIGHT = 11
+const MAX_NODE_RADIUS = 7
+
+function nodeVerticalBounds(node: FlowNode): { min: number; max: number } {
+  const placement = node.labelPlacement ?? 'below'
+  const nodeMin = node.y - MAX_NODE_RADIUS
+  const nodeMax = node.y + MAX_NODE_RADIUS
+  if (placement === 'above') {
+    return { min: nodeMin - LABEL_GAP - LABEL_HEIGHT, max: nodeMax }
+  }
+  return { min: nodeMin, max: nodeMax + LABEL_GAP + LABEL_HEIGHT }
+}
+
+function verticalCenterOffset(): number {
+  const minY = Math.min(...NODES.map(n => nodeVerticalBounds(n).min))
+  const maxY = Math.max(...NODES.map(n => nodeVerticalBounds(n).max))
+  const contentHeight = maxY - minY
+  return (VIEWBOX.height - contentHeight) / 2 - minY
+}
 
 export default function PipelineFlow({ services, transfers, alerts }: PipelineFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null)
@@ -69,8 +92,10 @@ export default function PipelineFlow({ services, transfers, alerts }: PipelineFl
       return { ...e, active }
     })
 
+    const chart = svg.append('g').attr('transform', `translate(0, ${verticalCenterOffset()})`)
+
     // Draw edges — brighter for both active and inactive
-    svg.selectAll<SVGLineElement, typeof edgeStates[number]>('line')
+    chart.selectAll<SVGLineElement, typeof edgeStates[number]>('line')
       .data(edgeStates)
       .enter()
       .append('line')
@@ -113,7 +138,7 @@ export default function PipelineFlow({ services, transfers, alerts }: PipelineFl
       .attr('fill', 'var(--hud-primary, #00d4ff)')
 
     // Draw nodes — red for errored services
-    svg.selectAll<SVGCircleElement, FlowNode>('circle')
+    chart.selectAll<SVGCircleElement, FlowNode>('circle')
       .data(NODES)
       .enter()
       .append('circle')
@@ -125,12 +150,18 @@ export default function PipelineFlow({ services, transfers, alerts }: PipelineFl
       .attr('stroke-width', d => errorServices.has(d.id) ? 2.5 : 1.5)
 
     // Labels — brighter, bolder
-    svg.selectAll<SVGTextElement, FlowNode>('text')
+    chart.selectAll<SVGTextElement, FlowNode>('text')
       .data(NODES)
       .enter()
       .append('text')
       .attr('x', d => d.x)
-      .attr('y', d => d.y + 16)
+      .attr('y', d => {
+        const placement = d.labelPlacement ?? 'below'
+        return placement === 'above'
+          ? d.y - MAX_NODE_RADIUS - LABEL_GAP
+          : d.y + MAX_NODE_RADIUS + LABEL_GAP
+      })
+      .attr('dominant-baseline', d => (d.labelPlacement ?? 'below') === 'above' ? 'auto' : 'hanging')
       .attr('text-anchor', 'middle')
       .attr('fill', d => errorServices.has(d.id) ? 'var(--hud-error, #ff5252)' : 'var(--hud-text, #d0d8e8)')
       .attr('font-size', '11px')
@@ -141,12 +172,12 @@ export default function PipelineFlow({ services, transfers, alerts }: PipelineFl
   }, [services, transfers, alerts])
 
   return (
-    <Paper variant="outlined" sx={{ p: 1.5, mb: 2 }}>
+    <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderColor: 'var(--hud-border-subtle)' }}>
       <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5, letterSpacing: '0.1em' }}>
         Pipeline Flow
       </Typography>
       <Box>
-        <svg ref={svgRef} viewBox="0 0 820 210" style={{ width: '100%', height: 'auto', display: 'block' }} />
+        <svg ref={svgRef} viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
       </Box>
     </Paper>
   )

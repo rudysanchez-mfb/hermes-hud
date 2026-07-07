@@ -34,6 +34,18 @@ export function formatTokens(n: number): string {
   return String(n)
 }
 
+export function formatNumber(n: number | null | undefined): string {
+  return (n ?? 0).toLocaleString('en-US')
+}
+
+export function formatMoney(value: number | null | undefined, currency = 'USD', fractionDigits = 2): string {
+  const v = value ?? 0
+  const formatted = v.toLocaleString('en-US', { minimumFractionDigits: fractionDigits, maximumFractionDigits: fractionDigits })
+  if (currency === 'CNY') return `¥${formatted}`
+  if (!currency || currency === 'USD') return `$${formatted}`
+  return `${formatted} ${currency}`
+}
+
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes}B`
   if (bytes < 1048576) return `${(bytes / 1024).toFixed(0)}KB`

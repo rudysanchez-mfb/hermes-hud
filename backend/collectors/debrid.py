@@ -59,8 +59,14 @@ class DebridPipelineState:
 
 def _load_keys() -> dict[str, str]:
     settings_path = Path("/opt/media-stack/plex-debrid/config/settings.json")
-    with open(settings_path) as f:
-        s = json.load(f)
+    empty = {"premiumize": "", "torbox": "", "debridlink": ""}
+    try:
+        with open(settings_path) as f:
+            s = json.load(f)
+    except (FileNotFoundError, NotADirectoryError, PermissionError, json.JSONDecodeError, OSError):
+        # Media-server-only config; absent when running off-server. Degrade
+        # gracefully (empty keys skip the debrid API calls) instead of crashing.
+        return empty
     return {
         "premiumize": s.get("Premiumize API Key", ""),
         "torbox": s.get("Torbox API Key", ""),
@@ -76,8 +82,14 @@ def _get(url: str, headers: dict | None = None, timeout: int = 10) -> dict:
 
 def _mount_ok(path: str) -> MountStatus:
     try:
-        subprocess.run(["timeout", "5", "ls", path],
-                       capture_output=True, timeout=10, check=False)
+        # `timeout 5 ls` guards against hung network/FUSE mounts. Honor the
+        # exit code: a missing or unreadable path returns non-zero, which must
+        # report ok=False (previously it was always ok=True).
+        result = subprocess.run(["timeout", "5", "ls", path],
+                                capture_output=True, timeout=10, check=False)
+        if result.returncode != 0:
+            err = result.stderr.decode(errors="replace").strip() or f"ls exited {result.returncode}"
+            return MountStatus(path=path, ok=False, error=err[:100])
         return MountStatus(path=path, ok=True)
     except Exception as e:
         return MountStatus(path=path, ok=False, error=str(e)[:100])
