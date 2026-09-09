@@ -20,7 +20,10 @@ def _db_path() -> Path:
 
 @router.get("/sessions")
 async def get_sessions():
-    return to_dict(collect_sessions())
+    state = collect_sessions()
+    data = to_dict(state)
+    data["by_source"] = state.by_source()   # keep the method; add key for the panel
+    return data
 
 
 @router.get("/sessions/search")
