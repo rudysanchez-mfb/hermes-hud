@@ -15,6 +15,10 @@ from .models import ModelAnalyticsState, ModelSessionUsage, ModelUsage
 from .utils import default_hermes_dir, safe_get
 
 
+MAX_SESSION_DETAILS = 25  # per model — most-recent sessions kept for the drill-down table
+# TODO: parameterize via detail_limit query param if a full per-session export is ever needed
+
+
 def _table_columns(cursor: sqlite3.Cursor, table: str) -> set[str]:
     cursor.execute(f"PRAGMA table_info({table})")
     return {str(row[1]) for row in cursor.fetchall()}
@@ -174,6 +178,8 @@ def _do_collect(hermes_path: Path, days: Optional[int]) -> ModelAnalyticsState:
             key=lambda session: session.started_at or datetime.min,
             reverse=True,
         )
+        if len(usage.session_details) > MAX_SESSION_DETAILS:
+            usage.session_details = usage.session_details[:MAX_SESSION_DETAILS]
         caps = _capabilities(cache, usage.provider, usage.model)
         for key, value in caps.items():
             setattr(usage, key, value)
