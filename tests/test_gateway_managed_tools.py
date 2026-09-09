@@ -41,7 +41,7 @@ browser:
         "Nous Portal auth is present.",
         "No direct credential detected.",
     ]
-    assert by_key["web"].safe_actions == ["gateway-restart"]
+    assert by_key["web"].safe_actions == []
     assert by_key["image_gen"].gateway_service == "fal-queue"
     assert by_key["tts"].gateway_service == "openai-audio"
     assert by_key["browser"].gateway_service == "browser-use"
@@ -116,7 +116,7 @@ browser:
         "Nous Portal auth is missing.",
         "No direct credential detected.",
     ]
-    assert by_key["web"].safe_actions == ["gateway-restart"]
+    assert by_key["web"].safe_actions == []
     assert by_key["image_gen"].reason == "No gateway opt-in or direct FAL key configured."
     assert by_key["image_gen"].missing_config == [
         "image_gen.use_gateway: true",
