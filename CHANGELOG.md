@@ -14,6 +14,16 @@
 
 All notable changes to hermes-hudui are documented here.
 
+## v0.11.0 — 2026-09-09
+
+- **Read-only v2 (cloud deploy):** the HUD now serves read-only on hermeshud.com (DigitalOcean VPS behind Cloudflare Tunnel + Access). All write-capable backend handlers removed (memory/cron/gateway/plugins/replay/profiles/pipeline/billing/cache writes) plus a global 405 middleware blocking any non-GET/HEAD/OPTIONS. **Chat removed entirely** — it spawned a `hermes chat` subprocess that has no agent on the VPS.
+- **Fix:** Sessions tab By-Source breakdown renders — `/api/sessions` now injects `by_source` at the route layer (was a plain method dropped by `to_dict()`).
+- **Perf:** `/api/model-analytics` caps `session_details` at 25 per model — response 6.7 MB → <100 KB, aggregate totals preserved.
+- **Skills tab v2:** accordion layout, usage stats, drill-down modal.
+- **Style:** dark-blue de-green sweep (#2979ff primary / #00bcd4 teal), pipeline flow full-width SVG, service status pills filled not outlined.
+- **Perf:** single-flight response cache on `/api/dashboard` (collapses multi-tab SWR stampede).
+- **Perf:** MUI v9 palettes hardcoded per theme (avoid CSS named-color rejection).
+
 ## [Unreleased]
 
 ---

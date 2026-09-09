@@ -165,7 +165,7 @@ export default function App() {
       <div className="flex items-center justify-between px-3 py-0.5 text-sm border-t shrink-0"
            style={{ borderColor: 'var(--hud-border)', color: 'var(--hud-text-dim)', background: 'var(--hud-bg-surface)' }}>
         <span className="flex items-center gap-2">
-          ☤ {t('boot.version')} v0.10.0
+          ☤ {t('boot.version')} v0.11.0
           <span
             className="text-xs px-1.5 py-0.5 rounded"
             style={{
