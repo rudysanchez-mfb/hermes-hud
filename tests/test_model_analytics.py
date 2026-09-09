@@ -264,6 +264,41 @@ def test_model_analytics_enriches_capabilities_from_models_cache(tmp_path: Path)
     assert model.max_output_tokens == 128000
 
 
+def test_model_analytics_caps_session_details_newest_first(tmp_path: Path) -> None:
+    hermes_dir = tmp_path / "hermes"
+    hermes_dir.mkdir()
+    db_path = hermes_dir / "state.db"
+    _make_state_db(db_path)
+
+    total_sessions = 30
+    for i in range(1, total_sessions + 1):
+        _insert_session(
+            db_path,
+            id=f"s{i}",
+            source="cli",
+            started_at=float(i),
+            message_count=1,
+            input_tokens=10,
+            output_tokens=20,
+            estimated_cost_usd=0.01,
+            billing_provider="anthropic",
+            model="claude-sonnet-4-6",
+        )
+
+    state = collect_model_analytics(hermes_dir=str(hermes_dir), days=None)
+    usage = state.models[0]
+
+    # Aggregate totals are unaffected by the cap.
+    assert usage.sessions == total_sessions
+
+    # session_details is capped at MAX_SESSION_DETAILS (25), newest-first.
+    assert len(usage.session_details) == 25
+    kept_ids = [session.id for session in usage.session_details]
+    assert kept_ids == [f"s{i}" for i in range(total_sessions, total_sessions - 25, -1)]
+    assert usage.session_details[0].id == f"s{total_sessions}"
+    assert usage.session_details[-1].id == f"s{total_sessions - 24}"
+
+
 def test_model_analytics_handles_old_session_schema(tmp_path: Path) -> None:
     hermes_dir = tmp_path / "hermes"
     hermes_dir.mkdir()
