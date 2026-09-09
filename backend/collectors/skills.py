@@ -114,7 +114,7 @@ def _mine_skill_usage(hermes_dir: str | None) -> dict[str, tuple[int, datetime |
         cur.execute(
             """
             SELECT timestamp, tool_calls
-            FROM messages
+            FROM (SELECT timestamp, tool_calls FROM messages ORDER BY rowid DESC LIMIT 150000)
             WHERE tool_calls LIKE '%skill_view%'
             ORDER BY timestamp DESC
             """

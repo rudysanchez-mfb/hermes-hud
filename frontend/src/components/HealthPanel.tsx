@@ -52,7 +52,7 @@ function DiagnosticList({
   const [expanded, setExpanded] = useState<string | null>(null)
   const visibleItems = items.filter((item) => filter === 'all' || item.status === filter)
   if (!visibleItems.length) {
-    return <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>-</div>
+    return <div className="text-sm" style={{ color: 'var(--hud-text-dim)' }}>-</div>
   }
   return (
     <div className="space-y-2">
@@ -60,21 +60,21 @@ function DiagnosticList({
         <div key={item.name} className="py-1.5" style={{ borderBottom: '1px solid var(--hud-border)' }}>
           <button
             type="button"
-            className="w-full flex items-start justify-between gap-3 text-[13px] text-left"
+            className="w-full flex items-start justify-between gap-3 text-sm text-left"
             onClick={() => setExpanded(expanded === item.name ? null : item.name)}
           >
             <div className="min-w-0">
               <div className="truncate">{expanded === item.name ? '▾' : '▸'} {item.name}</div>
-              <div className="text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>
+              <div className="text-xs" style={{ color: 'var(--hud-text-dim)' }}>
                 {item.updated_at ? timeAgo(item.updated_at) : item.detail}
               </div>
             </div>
-            <div className="text-[11px] font-bold shrink-0" style={{ color: STATUS_COLOR[item.status] || 'var(--hud-text-dim)' }}>
+            <div className="text-xs font-bold shrink-0" style={{ color: STATUS_COLOR[item.status] || 'var(--hud-text-dim)' }}>
               {statusLabel(item.status)}
             </div>
           </button>
           {expanded === item.name && (
-            <div className="mt-2 ml-4 space-y-2 text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>
+            <div className="mt-2 ml-4 space-y-2 text-xs" style={{ color: 'var(--hud-text-dim)' }}>
               <div>{item.detail}</div>
               {item.depends_on && item.depends_on.length > 0 && (
                 <div>
@@ -86,13 +86,13 @@ function DiagnosticList({
                   <span style={{ color: 'var(--hud-text)' }}>Fix:</span> {item.suggested_fix}
                 </div>
               )}
-              {item.actions && item.actions.length > 0 && (
+              {item.actions && item.actions.some((a) => a.kind !== 'post') && (
                 <div className="flex flex-wrap gap-1">
-                  {item.actions.map((action) => (
+                  {item.actions.filter((a) => a.kind !== 'post').map((action) => (
                     <button
                       key={`${item.name}:${action.name}`}
                       type="button"
-                      className="px-2 py-1 border text-[11px]"
+                      className="px-2 py-1 border text-xs"
                       style={{ borderColor: 'var(--hud-border)', color: 'var(--hud-primary)' }}
                       onClick={(event) => {
                         event.stopPropagation()
@@ -125,7 +125,7 @@ export default function HealthPanel() {
 
   // Only show loading on initial load
   if (isLoading && !data) {
-    return <MuiPanel title={t('health.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('health.loading')}</div></MuiPanel>
+    return <MuiPanel title={t('health.title')} className="col-span-full"><div className="glow text-sm animate-pulse">{t('health.loading')}</div></MuiPanel>
   }
 
   const keys = data.keys || []
@@ -146,22 +146,12 @@ export default function HealthPanel() {
       window.dispatchEvent(new CustomEvent('hud:navigate', { detail: { tab: action.target } }))
       return
     }
-    if (action.kind === 'post' && action.endpoint) {
-      try {
-        const res = await fetch(action.endpoint, { method: 'POST' })
-        if (!res.ok) throw new Error(await res.text())
-        await mutate()
-        setActionStatus(t('health.actionDone'))
-      } catch (err) {
-        setActionStatus(`Error: ${err instanceof Error ? err.message : String(err)}`)
-      }
-    }
   }
 
   return (
     <>
       <MuiPanel title={t('health.diagnostics')} className="col-span-full">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-[13px]">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
           {[
             [t('health.ok'), data.diagnostics_ok || 0, 'var(--hud-success)'],
             [t('health.warnings'), data.diagnostics_warnings || 0, 'var(--hud-warning)'],
@@ -170,12 +160,12 @@ export default function HealthPanel() {
             [t('health.db'), data.state_db_exists ? formatSize(data.state_db_size || 0) : t('health.missing'), 'var(--hud-text)'],
           ].map(([label, value, color]) => (
             <div key={String(label)} className="py-2 px-2 border" style={{ borderColor: 'var(--hud-border)' }}>
-              <div className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--hud-text-dim)' }}>{label}</div>
+              <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--hud-text-dim)' }}>{label}</div>
               <div className="font-bold" style={{ color: String(color) }}>{value}</div>
             </div>
           ))}
         </div>
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-[12px]">
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
           <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('health.cli')}:</span> {data.hermes_cli_status || '-'}</div>
           <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('health.path')}:</span> {data.hermes_cli_path || '-'}</div>
           <div><span style={{ color: 'var(--hud-text-dim)' }}>{t('health.lastSession')}:</span> {data.last_session_at ? timeAgo(data.last_session_at) : '-'}</div>
@@ -189,7 +179,7 @@ export default function HealthPanel() {
             <button
               key={value}
               type="button"
-              className="px-2 py-1 text-[11px] border"
+              className="px-2 py-1 text-xs border"
               style={{
                 borderColor: severityFilter === value ? 'var(--hud-primary)' : 'var(--hud-border)',
                 color: severityFilter === value ? 'var(--hud-primary)' : 'var(--hud-text-dim)',
@@ -220,7 +210,7 @@ export default function HealthPanel() {
       </MuiPanel>
 
       <MuiPanel title={t('health.apiKeys')} className="col-span-1">
-        <div className="space-y-1 text-[13px]">
+        <div className="space-y-1 text-sm">
           {keys.map((k: any, i: number) => (
             <div key={i} className="flex justify-between py-0.5">
               <span className="truncate mr-2">{k.name}</span>
@@ -230,7 +220,7 @@ export default function HealthPanel() {
             </div>
           ))}
         </div>
-        <div className="mt-2 pt-2 text-[13px]" style={{ borderTop: '1px solid var(--hud-border)' }}>
+        <div className="mt-2 pt-2 text-sm" style={{ borderTop: '1px solid var(--hud-border)' }}>
           <span style={{ color: 'var(--hud-success)' }}>{data.keys_ok || 0}</span>
           <span style={{ color: 'var(--hud-text-dim)' }}> {t('health.configured')} · </span>
           <span style={{ color: data.keys_missing > 0 ? 'var(--hud-error)' : 'var(--hud-text-dim)' }}>{data.keys_missing || 0}</span>
@@ -239,7 +229,7 @@ export default function HealthPanel() {
       </MuiPanel>
 
       <MuiPanel title={t('health.services')} className="col-span-1">
-        <div className="space-y-2 text-[13px]">
+        <div className="space-y-2 text-sm">
           {services.map((s: any, i: number) => (
             <div key={i} className="py-1 px-2" style={{ borderLeft: `2px solid ${s.running ? 'var(--hud-success)' : 'var(--hud-error)'}` }}>
               <div className="flex justify-between">
@@ -253,7 +243,7 @@ export default function HealthPanel() {
             </div>
           ))}
         </div>
-        <div className="mt-3 text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
+        <div className="mt-3 text-sm" style={{ color: 'var(--hud-text-dim)' }}>
           <div>{t('health.provider')}: {data.config_provider || '-'}</div>
           <div>{t('health.model')}: {data.config_model || '-'}</div>
           <div>{t('health.db')}: {data.state_db_exists ? `${(data.state_db_size / 1048576).toFixed(1)}MB` : t('health.missing')}</div>

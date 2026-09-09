@@ -22,7 +22,7 @@ def _extract_tool_usage(db_path: str) -> dict[str, int]:
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT tool_calls FROM messages WHERE tool_calls IS NOT NULL AND tool_calls != ''"
+            "SELECT tool_calls FROM (SELECT tool_calls FROM messages ORDER BY rowid DESC LIMIT 150000) WHERE tool_calls IS NOT NULL AND tool_calls != ''"
         )
         for (tc_json,) in cursor.fetchall():
             try:
@@ -153,6 +153,7 @@ def _do_collect_sessions(db_path: str) -> SessionsState:
             FROM sessions
             WHERE {human_session_where}
             ORDER BY started_at DESC
+            LIMIT 2000
         """.format(
             model=_optional_column(columns, "model"),
             parent_session_id=_optional_column(columns, "parent_session_id"),

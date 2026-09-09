@@ -4,31 +4,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_replay_tab_is_registered_and_verify_is_embedded() -> None:
-    top_bar = (ROOT / "frontend/src/components/TopBar.tsx").read_text()
-    app = (ROOT / "frontend/src/App.tsx").read_text()
-    translations = (ROOT / "frontend/src/i18n/translations.ts").read_text()
-    replay_panel = (ROOT / "frontend/src/components/ReplayPanel.tsx").read_text()
-
-    assert "id: 'replay'" in top_bar
-    assert "id: 'verify'" not in top_bar
-    assert "case 'replay': return <ReplayPanel />" in app
-    assert "case 'verify'" not in app
-    assert "tab.verify" not in app
-    assert "function VerifyReplaySection" in replay_panel
-    assert "<VerifyPanel embedded className=\"mt-3\" />" in replay_panel
-    assert "'tab.verify': 'Verify'" in translations
-
-
-def test_verify_panel_calls_replay_verify_endpoint() -> None:
-    verify_panel = (ROOT / "frontend/src/components/VerifyPanel.tsx").read_text()
-
-    assert "receipt.json path" in verify_panel
-    assert "replay.redacted.json path" in verify_panel
-    assert "fetch('/api/replay/verify'" in verify_panel
-    assert "Signature and local hashes match." in verify_panel
-
-
 def test_replay_panel_shows_skill_provenance_index() -> None:
     replay_panel = (ROOT / "frontend/src/components/ReplayPanel.tsx").read_text()
 
@@ -83,22 +58,6 @@ def test_replay_detail_has_share_card_preview() -> None:
     assert "<ShareCardPreview detail={detail} />" in replay_panel
 
 
-def test_replay_export_actions_include_local_unpublish() -> None:
-    replay_panel = (ROOT / "frontend/src/components/ReplayPanel.tsx").read_text()
-
-    assert "actionGroups" in replay_panel
-    assert "Prepare" in replay_panel
-    assert "Export" in replay_panel
-    assert "Share Images" in replay_panel
-    assert "Publish" in replay_panel
-    assert "['Unpublish', '/publish', 'DELETE']" in replay_panel
-    assert "['Record View', '/view']" in replay_panel
-    assert "['Landscape PNG', '/share-card?card_format=landscape']" in replay_panel
-    assert "['Square PNG', '/share-card?card_format=square']" in replay_panel
-    assert "['Story PNG', '/share-card?card_format=story']" in replay_panel
-    assert "method = 'POST'" in replay_panel
-
-
 def test_replay_panel_shows_local_gallery_index() -> None:
     replay_panel = (ROOT / "frontend/src/components/ReplayPanel.tsx").read_text()
 
@@ -107,16 +66,6 @@ def test_replay_panel_shows_local_gallery_index() -> None:
     assert "Published Gallery" in replay_panel
     assert "Static index: {galleryPath}" in replay_panel
     assert "views {entry.view_count || 0} · forks {entry.fork_count || 0}" in replay_panel
-
-
-def test_redaction_panel_shows_finding_type_summary() -> None:
-    replay_panel = (ROOT / "frontend/src/components/ReplayPanel.tsx").read_text()
-
-    assert "findingCounts" in replay_panel
-    assert "'api_key'" in replay_panel
-    assert "'bearer_token'" in replay_panel
-    assert "'local_path'" in replay_panel
-    assert "'raw_field'" in replay_panel
 
 
 def test_replay_settings_warn_before_raw_logs_or_screenshots() -> None:

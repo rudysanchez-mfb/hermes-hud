@@ -26,6 +26,7 @@ os.environ["PATH"] = os.pathsep.join(_path_parts + _extra_dirs)
 
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
 
@@ -46,7 +47,6 @@ from .api import (
     dashboard,
     token_costs,
     cache,
-    chat,
     sudo,
     providers,
     gateway,
@@ -69,7 +69,8 @@ async def lifespan(app: FastAPI):
     """Manage application lifespan: start/stop file watcher."""
     # Startup
     hermes_dir = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
-    await start_watcher(hermes_dir)
+    if not os.environ.get("HUD_NO_WATCH"):
+        await start_watcher(hermes_dir)
     logger.info(f"Hermes HUD started, watching {hermes_dir}")
 
     yield
@@ -91,6 +92,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def read_only_middleware(request, call_next):
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        return JSONResponse(status_code=405, content={"detail": "Read-only dashboard"})
+    return await call_next(request)
 
 
 async def _static_http_only(scope, receive, send):
@@ -138,7 +146,6 @@ app.include_router(snapshots.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(token_costs.router, prefix="/api")
 app.include_router(cache.router, prefix="/api")
-app.include_router(chat.router, prefix="/api")
 app.include_router(sudo.router, prefix="/api")
 app.include_router(providers.router, prefix="/api")
 app.include_router(gateway.router, prefix="/api")

@@ -14,7 +14,6 @@ import ReplayPanel from './components/ReplayPanel'
 import CronPanel from './components/CronPanel'
 import HealthPanel from './components/HealthPanel'
 import AgentsPanel from './components/AgentsPanel'
-import ChatPanel from './components/ChatPanel'
 import TokenCostsPanel from './components/TokenCostsPanel'
 import CorrectionsPanel from './components/CorrectionsPanel'
 import SubTabs from './components/SubTabs'
@@ -57,7 +56,6 @@ function tabPanel(tab: TabId) {
     case 'music':       return <MusicPanel />
     case 'services':    return <HealthPanel />          // component name unchanged
     case 'cron':        return <CronPanel />
-    case 'chat':        return <ChatPanel />
     case 'sessions':    return <SessionsWrapper />       // Sessions + Replay
     case 'memory':      return <MemoryWrapper />          // Memory + Corrections
     case 'skills':      return <SkillsPanel />
@@ -78,7 +76,6 @@ const GRID_CLASS: Record<TabId, string> = {
   cron:        'grid-cols-1',
   services:    'grid-cols-1 sm:grid-cols-2',
   agents:      'grid-cols-1 lg:grid-cols-2',
-  chat:        'grid-cols-1',
   'token-costs': 'grid-cols-1 lg:grid-cols-2',
   debrid:      'grid-cols-1',
   music:       'grid-cols-1',
@@ -149,48 +146,28 @@ export default function App() {
 
       <NavShell activeTab={activeTab} onTabChange={handleTabChange} />
 
-      {/* Chat tab gets a fixed-height flex container so the message
-          thread scrolls internally instead of page-scrolling. */}
-      {activeTab === 'chat' ? (
-        <div style={{ flex: '1 1 0', height: 0, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <div className="p-2 h-full">
-            <Routes>
-              {TABS.map(tab => (
-                <Route key={tab.id} path={`/${tab.id}`} element={tabPanel(tab.id)} />
-              ))}
-              {/* Redirect old tabs */}
-              {Object.entries(REDIRECTS).map(([oldId, newId]) => (
-                <Route key={`redir-${oldId}`} path={`/${oldId}`} element={<Navigate to={`/${newId}`} replace />} />
-              ))}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </div>
+      <div className="overflow-y-auto" style={{ flex: '1 1 0', height: 0, minHeight: 0 }}>
+        <div className={`grid gap-2 p-2 ${GRID_CLASS[activeTab] || 'grid-cols-1'}`}>
+          <Routes>
+            {TABS.map(tab => (
+              <Route key={tab.id} path={`/${tab.id}`} element={tabPanel(tab.id)} />
+            ))}
+            {Object.entries(REDIRECTS).map(([oldId, newId]) => (
+              <Route key={`redir-${oldId}`} path={`/${oldId}`} element={<Navigate to={`/${newId}`} replace />} />
+            ))}
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </div>
-      ) : (
-        <div className="overflow-y-auto" style={{ flex: '1 1 0', height: 0, minHeight: 0 }}>
-          <div className={`grid gap-2 p-2 ${GRID_CLASS[activeTab] || 'grid-cols-1'}`}>
-            <Routes>
-              {TABS.map(tab => (
-                <Route key={tab.id} path={`/${tab.id}`} element={tabPanel(tab.id)} />
-              ))}
-              {Object.entries(REDIRECTS).map(([oldId, newId]) => (
-                <Route key={`redir-${oldId}`} path={`/${oldId}`} element={<Navigate to={`/${newId}`} replace />} />
-              ))}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Status bar */}
-      <div className="flex items-center justify-between px-3 py-0.5 text-[13px] border-t shrink-0"
+      <div className="flex items-center justify-between px-3 py-0.5 text-sm border-t shrink-0"
            style={{ borderColor: 'var(--hud-border)', color: 'var(--hud-text-dim)', background: 'var(--hud-bg-surface)' }}>
         <span className="flex items-center gap-2">
           ☤ {t('boot.version')} v0.10.0
           <span
-            className="text-[10px] px-1.5 py-0.5 rounded"
+            className="text-xs px-1.5 py-0.5 rounded"
             style={{
               background: wsStatus === 'connected' ? 'var(--hud-success)' :
                          wsStatus === 'connecting' ? 'var(--hud-warning)' : 'var(--hud-error)',

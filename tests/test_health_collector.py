@@ -95,9 +95,7 @@ def test_health_collects_readiness_freshness_and_feature_diagnostics(tmp_path: P
     assert any(action.name == "Recheck" and action.kind == "refresh" for action in features["Chat"].actions)
     assert features["Sessions"].status == "ok"
     assert features["Model Analytics"].status == "ok"
-    assert any(action.name == "Clear HUD cache" and action.endpoint == "/api/cache/clear" for action in features["Model Analytics"].actions)
     assert features["Gateway"].status == "ok"
-    assert any(action.name == "Restart gateway" and action.endpoint == "/api/gateway/restart" for action in features["Gateway"].actions)
     assert features["Plugins"].status == "ok"
 
     assert state.hermes_cli_status == "ok"

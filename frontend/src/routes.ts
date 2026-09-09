@@ -7,8 +7,8 @@ export interface TabDef {
   key: string | null  // keyboard shortcut digit, null for none
 }
 
-// Final 12-tab layout (Phase 3 consolidation):
-// Dashboard · Costs · Debrid · Music · Services · Cron · Chat
+// Final 11-tab layout (Phase 3 consolidation):
+// Dashboard · Costs · Debrid · Music · Services · Cron
 // · Sessions · Memory · Skills · Agents · System
 export const TABS: TabDef[] = [
   { id: 'dashboard',   labelKey: 'tab.dashboard',   key: '1' },
@@ -17,7 +17,6 @@ export const TABS: TabDef[] = [
   { id: 'music',       labelKey: 'tab.music',       key: '4' },
   { id: 'services',    labelKey: 'tab.services',    key: '5' },
   { id: 'cron',        labelKey: 'tab.cron',        key: '6' },
-  { id: 'chat',        labelKey: 'tab.chat',        key: '7' },
   { id: 'sessions',    labelKey: 'tab.sessions',    key: '8' },
   { id: 'memory',      labelKey: 'tab.memory',      key: '9' },
   { id: 'skills',      labelKey: 'tab.skills',      key: null },

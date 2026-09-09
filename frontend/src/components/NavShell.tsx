@@ -12,7 +12,7 @@ import { useTheme, THEMES } from '../hooks/useTheme'
 import { useI18n } from '../i18n'
 import { useState, useEffect, useCallback } from 'react'
 
-const TOP_5 = ['dashboard', 'token-costs', 'debrid', 'music', 'chat']
+const TOP_5 = ['dashboard', 'token-costs', 'debrid', 'music', 'services']
 
 interface NavShellProps {
   activeTab: string
@@ -92,7 +92,7 @@ export default function NavShell({ activeTab, onTabChange }: NavShellProps) {
                   value={tab.id}
                   label={
                     <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                      {tab.key && <Typography variant="caption" sx={{ opacity: 0.4, fontSize: '0.65rem' }}>{tab.key}</Typography>}
+                      {tab.key && <Typography variant="caption" sx={{ opacity: 0.4, fontSize: '0.75rem' }}>{tab.key}</Typography>}
                       {t(tab.labelKey as any)}
                     </Box>
                   }
@@ -124,7 +124,7 @@ export default function NavShell({ activeTab, onTabChange }: NavShellProps) {
               size="small"
               variant="outlined"
               onClick={() => setLang(lang === 'en' ? 'zh' : 'en')}
-              sx={{ fontSize: '0.7rem', height: 24 }}
+              sx={{ fontSize: '0.75rem', height: 24 }}
             />
           </Toolbar>
         </AppBar>
@@ -197,7 +197,7 @@ export default function NavShell({ activeTab, onTabChange }: NavShellProps) {
             position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1100,
             borderTop: 1, borderColor: 'divider', bgcolor: 'background.paper',
             '& .MuiBottomNavigationAction-root': { minWidth: 0, py: 0.5 },
-            '& .MuiBottomNavigationAction-label': { fontSize: '0.65rem', mt: 0.25 },
+            '& .MuiBottomNavigationAction-label': { fontSize: '0.75rem', mt: 0.25 },
           }}
         >
           {TOP_5.map(id => (
@@ -206,7 +206,7 @@ export default function NavShell({ activeTab, onTabChange }: NavShellProps) {
               value={id}
               label={t((TABS.find(tab => tab.id === id)?.labelKey || '') as any)}
               icon={
-                <Typography variant="caption" sx={{ fontSize: '0.7rem' }}>
+                <Typography variant="caption" sx={{ fontSize: '0.75rem' }}>
                   {TABS.find(tab => tab.id === id)?.key || id[0]}
                 </Typography>
               }

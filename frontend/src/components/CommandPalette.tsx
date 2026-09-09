@@ -75,7 +75,7 @@ export default function CommandPalette({ commands, onSelect }: CommandPalettePro
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder={t('commandPalette.placeholder')}
-            className="w-full bg-transparent outline-none text-[13px] py-1"
+            className="w-full bg-transparent outline-none text-sm py-1"
             style={{ color: 'var(--hud-text)' }}
           />
         </div>
@@ -85,7 +85,7 @@ export default function CommandPalette({ commands, onSelect }: CommandPalettePro
           {filtered.map(cmd => (
             <button
               key={cmd.id}
-              className="w-full text-left px-3 py-1.5 text-[13px] flex items-center justify-between transition-colors"
+              className="w-full text-left px-3 py-1.5 text-sm flex items-center justify-between transition-colors"
               style={{
                 background: 'transparent',
                 color: 'var(--hud-text)',
@@ -97,21 +97,21 @@ export default function CommandPalette({ commands, onSelect }: CommandPalettePro
             >
               <span>{cmd.label}</span>
               {cmd.shortcut && (
-                <span className="text-[13px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-text-dim)' }}>
+                <span className="text-sm px-1.5 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-text-dim)' }}>
                   {cmd.shortcut}
                 </span>
               )}
             </button>
           ))}
           {filtered.length === 0 && (
-            <div className="px-3 py-3 text-[13px] text-center" style={{ color: 'var(--hud-text-dim)' }}>
+            <div className="px-3 py-3 text-sm text-center" style={{ color: 'var(--hud-text-dim)' }}>
               No results for "{query}"
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-3 py-1 text-[9px] flex justify-between" style={{ color: 'var(--hud-text-dim)', borderTop: '1px solid var(--hud-border)' }}>
+        <div className="px-3 py-1 text-xs flex justify-between" style={{ color: 'var(--hud-text-dim)', borderTop: '1px solid var(--hud-border)' }}>
           <span>type to filter</span>
           <span>ESC to close</span>
         </div>
