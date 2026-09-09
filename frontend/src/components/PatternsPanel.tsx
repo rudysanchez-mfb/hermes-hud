@@ -33,13 +33,13 @@ export default function PatternsPanel() {
 
   // Only show loading on initial load
   if (isLoading && !data) {
-    return <MuiPanel title={t('patterns.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('patterns.loading')}</div></MuiPanel>
+    return <MuiPanel title={t('patterns.title')} className="col-span-full"><div className="glow text-sm animate-pulse">{t('patterns.loading')}</div></MuiPanel>
   }
 
   return (
     <>
       <MuiPanel title="Task Clusters" className="col-span-1">
-        <div className="space-y-1.5 text-[13px]">
+        <div className="space-y-1.5 text-sm">
           {(data.clusters || []).map((c: any) => (
             <div key={c.label} className="py-1 px-2" style={{ borderLeft: '2px solid var(--hud-border)' }}>
               <div className="flex justify-between">
@@ -56,18 +56,18 @@ export default function PatternsPanel() {
 
       <MuiPanel title="Hourly Activity" className="col-span-1">
         <HourlyHeatmap data={data.hourly_activity || []} />
-        <div className="flex justify-between text-[13px] mt-1" style={{ color: 'var(--hud-text-dim)' }}>
+        <div className="flex justify-between text-sm mt-1" style={{ color: 'var(--hud-text-dim)' }}>
           <span>00</span><span>06</span><span>12</span><span>18</span><span>23</span>
         </div>
         {data.peak_hour !== null && (
-          <div className="mt-2 text-[13px]">
+          <div className="mt-2 text-sm">
             Peak: <span style={{ color: 'var(--hud-primary)' }}>{String(data.peak_hour).padStart(2, '0')}:00</span>
           </div>
         )}
       </MuiPanel>
 
       <MuiPanel title="Repeated Prompts" className="col-span-1">
-        <div className="space-y-1 text-[13px]">
+        <div className="space-y-1 text-sm">
           {(data.repeated_prompts || []).map((r: any, i: number) => (
             <div key={i} className="flex gap-2 py-0.5">
               <span className="tabular-nums" style={{ color: 'var(--hud-primary)' }}>{r.count}×</span>

@@ -9,8 +9,20 @@ const fetcher = async (url: string) => {
   return res.json()
 }
 
-export function useApi<T = any>(path: string | null, refreshInterval = 30000) {
-  return useSWR<T>(path ? `/api${path}` : null, fetcher, {
+export function useApi<T = any>(
+  path: string | null,
+  refreshInterval = 30000,
+  params?: Record<string, string | number | undefined>
+) {
+  const qs = params
+    ? new URLSearchParams(
+        Object.entries(params)
+          .filter(([, v]) => v !== undefined)
+          .map(([k, v]) => [k, String(v)])
+      ).toString()
+    : ''
+  const queryString = qs ? `?${qs}` : ''
+  return useSWR<T>(path ? `/api${path}${queryString}` : null, fetcher, {
     refreshInterval,
     revalidateOnFocus: false,
     dedupingInterval: 5000,

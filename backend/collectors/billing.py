@@ -149,6 +149,17 @@ def collect_billing() -> dict:
             providers[key]["iframe_url"] = url
             providers[key]["iframe_blocked"] = blocked
 
+    # ── Mark dead providers (no data → hidden on Costs tab) ──
+    DEAD_PROVIDERS = {"mistral", "novita", "nvidia", "stepfun", "arcee"}
+    for key in DEAD_PROVIDERS:
+        if key in providers and not providers[key]["has_data"]:
+            providers[key]["is_hidden"] = True
+
+    # ── Signal estimate data for non-API providers ──
+    for key in ("openai", "anthropic"):
+        if key in providers:
+            providers[key]["has_estimate_data"] = True
+
     return {
         "updated_at": datetime.now().isoformat(),
         "providers": providers,

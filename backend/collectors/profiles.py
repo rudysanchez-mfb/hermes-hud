@@ -185,23 +185,34 @@ def _count_cron_jobs(profile_dir: Path) -> int:
         return 0
 
 
-def _read_api_keys(profile_dir: Path) -> list[str]:
-    """Read API key names (not values) from .env file."""
-    env_path = profile_dir / ".env"
-    if not env_path.exists():
-        return []
+def _read_api_keys(profile_dir: Path, hermes_path: Path | None = None) -> list[str]:
+    """Read API key names (not values) from .env files.
+
+    Checks hermes_path/.env first (main hermes env), then
+    profile_dir/.env, and returns the union with no duplicates.
+    """
+    env_paths = []
+    if hermes_path is not None:
+        env_paths.append(hermes_path / ".env")
+    env_paths.append(profile_dir / ".env")
+
     keys = []
-    try:
-        for line in env_path.read_text(encoding="utf-8").split("\n"):
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key_name = line.split("=", 1)[0].strip()
-                if key_name and (
-                    "KEY" in key_name or "TOKEN" in key_name or "SECRET" in key_name
-                ):
-                    keys.append(key_name)
-    except Exception:
-        pass
+    seen = set()
+    for env_path in env_paths:
+        if not env_path.exists():
+            continue
+        try:
+            for line in env_path.read_text(encoding="utf-8").split("\n"):
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key_name = line.split("=", 1)[0].strip()
+                    if key_name and key_name not in seen and (
+                        "KEY" in key_name or "TOKEN" in key_name or "SECRET" in key_name
+                    ):
+                        keys.append(key_name)
+                        seen.add(key_name)
+        except Exception:
+            pass
     return keys
 
 
@@ -243,7 +254,7 @@ def _check_server_status(base_url: str) -> str:
 
 
 def _collect_single_profile(
-    profile_dir: Path, name: str, is_default: bool = False
+    profile_dir: Path, name: str, is_default: bool = False, hermes_path: Path | None = None
 ) -> ProfileInfo:
     """Collect all data for a single profile."""
     config = _read_config(profile_dir)
@@ -303,7 +314,7 @@ def _collect_single_profile(
     sess_stats = _read_session_stats(profile_dir)
     skill_count = _count_skills(profile_dir)
     cron_count = _count_cron_jobs(profile_dir)
-    api_keys = _read_api_keys(profile_dir)
+    api_keys = _read_api_keys(profile_dir, hermes_path)
     gateway = _check_gateway_status(name)
     server = _check_server_status(base_url)
     try:
@@ -359,7 +370,7 @@ def _do_collect_profiles(hermes_path: Path) -> ProfilesState:
     profiles = []
 
     # Default profile is the hermes_dir itself
-    default_profile = _collect_single_profile(hermes_path, "default", is_default=True)
+    default_profile = _collect_single_profile(hermes_path, "default", is_default=True, hermes_path=hermes_path)
     profiles.append(default_profile)
 
     # Scan profiles subdirectory
@@ -367,7 +378,7 @@ def _do_collect_profiles(hermes_path: Path) -> ProfilesState:
     if profiles_dir.is_dir():
         for entry in sorted(profiles_dir.iterdir()):
             if entry.is_dir() and not entry.name.startswith("."):
-                profile = _collect_single_profile(entry, entry.name)
+                profile = _collect_single_profile(entry, entry.name, hermes_path=hermes_path)
                 profiles.append(profile)
 
     return ProfilesState(profiles=profiles)

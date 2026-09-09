@@ -111,7 +111,7 @@ export default function DashboardPanel() {
                   label={item.severity}
                   size="small"
                   color={item.severity === 'critical' ? 'error' : item.severity === 'warning' ? 'warning' : 'default'}
-                  sx={{ fontSize: '0.65rem', height: 20, minWidth: 56 }}
+                  sx={{ fontSize: '0.75rem', height: 20, minWidth: 56 }}
                 />
                 <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
                   {item.label.length > 100 ? item.label.slice(0, 97) + '...' : item.label}
@@ -138,7 +138,7 @@ export default function DashboardPanel() {
                   label={c.name}
                   size="small"
                   sx={{
-                    fontSize: '0.7rem', height: 26,
+                    fontSize: '0.75rem', height: 26,
                     bgcolor: ok ? muiTheme.palette.primary.main : muiTheme.palette.error.main,
                     color: ok ? muiTheme.palette.primary.contrastText : '#fff',
                     fontWeight: 600,
@@ -162,7 +162,7 @@ export default function DashboardPanel() {
                 {' '}
                 {debrid.services?.length || 0} services · {debrid.transfers?.length || 0} active
                 {debrid.alerts?.length > 0 && (
-                  <Chip label={`${debrid.alerts.length} alerts`} size="small" color="warning" sx={{ ml: 1, fontSize: '0.6rem', height: 18 }} />
+                  <Chip label={`${debrid.alerts.length} alerts`} size="small" color="warning" sx={{ ml: 1, fontSize: '0.75rem', height: 18 }} />
                 )}
               </Typography>
             </Box>
@@ -172,7 +172,7 @@ export default function DashboardPanel() {
                 {' '}
                 Lidarr: {music.lidarr_queue?.active || 0} in queue · {music.lidarr_wanted || 0} wanted
                 {music.alerts?.length > 0 && (
-                  <Chip label={`${music.alerts.length} alerts`} size="small" color="warning" sx={{ ml: 1, fontSize: '0.6rem', height: 18 }} />
+                  <Chip label={`${music.alerts.length} alerts`} size="small" color="warning" sx={{ ml: 1, fontSize: '0.75rem', height: 18 }} />
                 )}
               </Typography>
             </Box>
@@ -205,7 +205,7 @@ export default function DashboardPanel() {
                         label={j.last_status || '—'}
                         size="small"
                         color={j.last_error ? 'error' : j.last_status === 'ok' ? 'success' : 'default'}
-                        sx={{ fontSize: '0.65rem', height: 20 }}
+                        sx={{ fontSize: '0.75rem', height: 20 }}
                       />
                     </TableCell>
                   </TableRow>

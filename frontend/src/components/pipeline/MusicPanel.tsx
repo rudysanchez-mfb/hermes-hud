@@ -1,19 +1,29 @@
 import {
   Box, Stack, Typography, Chip, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-  Collapse, IconButton
+  Collapse, IconButton, TextField, MenuItem
 } from '@mui/material'
 import { BarChart } from '@mui/x-charts/BarChart'
 import { usePipeline } from '../../hooks/usePipeline'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp'
 import { useTheme as useMuiTheme } from '@mui/material/styles'
 import { AlertStrip, StatCard, ProgressRow, SectionHeader } from './shared'
 
 export default function MusicPanel() {
-  const { data, error } = usePipeline<any>('/pipeline/music')
+  const [selectedRun, setSelectedRun] = useState('')
+  const apiPath = selectedRun ? `/pipeline/music?enricher_run=${encodeURIComponent(selectedRun)}` : '/pipeline/music'
+  const { data, error } = usePipeline<any>(apiPath)
   const muiTheme = useMuiTheme()
+
+  // Default dropdown to the actual latest run date once data loads
+  useEffect(() => {
+    if (data?.enricher?.runs?.length && !selectedRun) {
+      const latest = [...data.enricher.runs].reverse()[0]?.started_at?.slice(0, 10)
+      if (latest) setSelectedRun(latest)
+    }
+  }, [data])
 
   if (error) {
     return (
@@ -56,7 +66,7 @@ export default function MusicPanel() {
               label={nicotine.running ? 'running' : 'stopped'}
               size="small"
               color={nicotine.running ? 'success' : 'error'}
-              sx={{ fontSize: '0.7rem' }}
+              sx={{ fontSize: '0.75rem' }}
             />
           }
           sub={nicotine.running ? `${nicotine.recent_files || 0} files (30m)` : undefined}
@@ -146,11 +156,43 @@ export default function MusicPanel() {
       {/* Enricher status */}
       {enricher.artists?.length > 0 && (
         <Paper variant="outlined" sx={{ p: 1.5 }}>
-          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1, letterSpacing: '0.1em' }}>
-            Artist Enricher — {enricher.enriched || 0} enriched, {enricher.with_artwork || 0} w/ artwork, {enricher.no_bio || 0} no bio
-            {enricher.last_run && (
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: '0.1em' }}>
+              Artist Enricher
+            </Typography>
+            {enricher.runs?.length > 0 && (
+              <TextField
+                select
+                size="small"
+                value={selectedRun}
+                onChange={(e) => setSelectedRun(e.target.value)}
+                sx={{ minWidth: 260, '& .MuiInputBase-root': { fontSize: '0.8rem' } }}
+              >
+                <MenuItem value="">
+                  <em>Latest Run</em>
+                </MenuItem>
+                <MenuItem value="all">All Time ({enricher.total_processed || 0} artists)</MenuItem>
+                {[...enricher.runs].reverse().map((run: any) => {
+                  const date = new Date(run.started_at).toLocaleDateString()
+                  return (
+                    <MenuItem key={run.started_at} value={run.started_at.slice(0, 10)}>
+                      {date} — {run.enriched} enriched, {run.no_bio} no bio
+                    </MenuItem>
+                  )
+                })}
+              </TextField>
+            )}
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+            {enricher.enriched || 0} enriched, {enricher.with_artwork || 0} w/ artwork, {enricher.no_bio || 0} no bio
+            {enricher.selected_run && enricher.selected_run !== 'all' && (
               <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                (last: {new Date(enricher.last_run).toLocaleDateString()})
+                (run: {new Date(enricher.selected_run).toLocaleDateString()})
+              </Typography>
+            )}
+            {enricher.selected_run === 'all' && (
+              <Typography component="span" variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                (all-time aggregate)
               </Typography>
             )}
           </Typography>
@@ -207,7 +249,7 @@ function EnricherRow({ artist: a }: { artist: any }) {
             label={isEnriched ? '✓ enriched' : '✗ no bio'}
             size="small"
             color={isEnriched ? 'success' : 'default'}
-            sx={{ fontSize: '0.65rem', height: 20 }}
+            sx={{ fontSize: '0.75rem', height: 20 }}
           />
         </TableCell>
         <TableCell sx={{ fontSize: '0.75rem' }}>
@@ -216,8 +258,8 @@ function EnricherRow({ artist: a }: { artist: any }) {
         <TableCell>
           {isEnriched ? (
             a.artwork
-              ? <Chip label="✓" size="small" color="primary" sx={{ fontSize: '0.65rem', height: 20, minWidth: 32 }} />
-              : <Chip label="—" size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 20, minWidth: 32 }} />
+              ? <Chip label="✓" size="small" color="primary" sx={{ fontSize: '0.75rem', height: 20, minWidth: 32 }} />
+              : <Chip label="—" size="small" variant="outlined" sx={{ fontSize: '0.75rem', height: 20, minWidth: 32 }} />
           ) : '—'}
         </TableCell>
       </TableRow>
@@ -246,9 +288,9 @@ function EnricherRow({ artist: a }: { artist: any }) {
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Artwork pushed: {a.artwork ? (
-                      <Chip label="Yes" size="small" color="success" sx={{ fontSize: '0.6rem', height: 18 }} />
+                      <Chip label="Yes" size="small" color="success" sx={{ fontSize: '0.75rem', height: 18 }} />
                     ) : (
-                      <Chip label="No" size="small" variant="outlined" sx={{ fontSize: '0.6rem', height: 18 }} />
+                      <Chip label="No" size="small" variant="outlined" sx={{ fontSize: '0.75rem', height: 18 }} />
                     )}
                     {!a.artwork && a.reason && (
                       <Typography component="span" variant="caption" sx={{ ml: 1, fontStyle: 'italic' }}>

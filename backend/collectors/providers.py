@@ -25,15 +25,29 @@ _DISPLAY_NAMES = {
 
 _PROVIDER_KEYS = {
     "anthropic": ("ANTHROPIC_API_KEY",),
-    "openai": ("OPENAI_API_KEY",),
-    "openai-codex": ("OPENAI_API_KEY",),
-    "openrouter": ("OPENROUTER_API_KEY",),
+    "arcee": ("ARCEEAI_API_KEY", "ARCEE_API_KEY"),
+    "copilot": ("COPILOT_GITHUB_TOKEN", "GITHUB_TOKEN", "COPILOT_API_KEY"),
+    "deepseek": ("DEEPSEEK_API_KEY",),
     "fireworks": ("FIREWORKS_API_KEY",),
+    "gemini": ("GEMINI_API_KEY",),
+    "gmi": ("GMI_API_KEY",),
     "google": ("GOOGLE_AI_KEY", "GOOGLE_API_KEY", "GEMINI_API_KEY"),
-    "xai": ("XAI_API_KEY",),
-    "zai": ("ZAI_API_KEY",),
+    "kimi-coding": ("KIMI_API_KEY",),
+    "kimi-for-coding": ("KIMI_API_KEY",),
     "minimax": ("MINIMAX_API_KEY",),
     "nous": ("NOUS_API_KEY",),
+    "novita": ("NOVITA_API_KEY",),
+    "novita-ai": ("NOVITA_API_KEY",),
+    "novitaai": ("NOVITA_API_KEY",),
+    "nvidia": ("NVIDIA_API_KEY",),
+    "openai": ("OPENAI_API_KEY",),
+    "openai-api": ("OPENAI_API_KEY",),
+    "openai-codex": ("OPENAI_API_KEY",),
+    "openrouter": ("OPENROUTER_API_KEY",),
+    "stepfun": ("STEPFUN_API_KEY",),
+    "xai": ("XAI_API_KEY",),
+    "xiaomi": ("XIAOMI_API_KEY",),
+    "zai": ("ZAI_API_KEY",),
 }
 
 
@@ -107,8 +121,19 @@ def _available_key_names(hermes_path: Path) -> set[str]:
 
 
 def _provider_has_key(provider: str, available_keys: set[str]) -> bool:
-    aliases = _PROVIDER_KEYS.get(provider.lower(), ())
-    return any(key in available_keys for key in aliases)
+    provider = provider.lower()
+    # Strip "custom:" prefix so custom provider entries match their base provider.
+    if provider.startswith("custom:"):
+        provider = provider[7:]
+    aliases = _PROVIDER_KEYS.get(provider)
+    if aliases is not None:
+        return any(key in available_keys for key in aliases)
+    # Fallback: if no exact match, try prefix matching for known providers
+    # (e.g. "xiaomimimo" starts with "xiaomi"; "minimax-custom" starts with "minimax").
+    for known_name, aliases in _PROVIDER_KEYS.items():
+        if provider.startswith(known_name) and any(key in available_keys for key in aliases):
+            return True
+    return False
 
 
 def _read_models_cache(hermes_path: Path) -> dict:
@@ -258,6 +283,12 @@ def _do_collect_providers(hermes_path: Path) -> ProvidersState:
                     if records:
                         records.sort(key=lambda r: r.get("priority", 999))
                         providers[pid] = _build_provider(pid, records[0], active)
+                    else:
+                        # Empty list — create a placeholder; may be enriched from env vars below.
+                        providers[pid] = _build_provider(pid, {}, active)
+                elif isinstance(entry, list):
+                    # Empty list — create a placeholder; may be enriched from env vars below.
+                    providers[pid] = _build_provider(pid, {}, active)
                 elif isinstance(entry, dict):
                     providers[pid] = _build_provider(pid, entry, active)
                 elif isinstance(entry, str) and entry:
@@ -278,6 +309,14 @@ def _do_collect_providers(hermes_path: Path) -> ProvidersState:
             data = {}
         if isinstance(data, dict):
             providers["anthropic"] = _build_provider("anthropic", data, active)
+
+    # Enrich providers with env-var API keys when auth.json credential_pool
+    # entries have no embedded token (common — keys live only in .env).
+    available_keys = _available_key_names(hermes_path)
+    for pid, provider in providers.items():
+        if provider.status == "missing" and _provider_has_key(pid, available_keys):
+            provider.status = "connected"
+            provider.auth_mode = provider.auth_mode or "api_key"
 
     ordered = sorted(
         providers.values(),

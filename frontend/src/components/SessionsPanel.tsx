@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useApi } from '../hooks/useApi'
 import MuiPanel, { Sparkline } from './MuiPanel'
-import MessageBubble from './chat/MessageBubble'
 import { useTranslation } from '../i18n'
 
 function sourceColor(source: string) {
@@ -34,18 +33,18 @@ function TranscriptViewer({ sessionId, onClose }: { sessionId: string; onClose: 
           style={{ borderColor: 'var(--hud-border)' }}
         >
           <div>
-            <span className="text-[13px] uppercase tracking-widest" style={{ color: 'var(--hud-primary)' }}>
+            <span className="text-sm uppercase tracking-widest" style={{ color: 'var(--hud-primary)' }}>
               {data?.title || sessionId.slice(0, 8)}
             </span>
             {data?.source && (
-              <span className="ml-2 text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>
+              <span className="ml-2 text-xs" style={{ color: 'var(--hud-text-dim)' }}>
                 {data.source}
               </span>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-[13px] px-2 py-0.5 cursor-pointer"
+            className="text-sm px-2 py-0.5 cursor-pointer"
             style={{ color: 'var(--hud-text-dim)' }}
           >
             ✕ {t('sessions.close')}
@@ -55,20 +54,21 @@ function TranscriptViewer({ sessionId, onClose }: { sessionId: string; onClose: 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-3">
           {isLoading && (
-            <div className="text-[13px] animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>
+            <div className="text-sm animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>
               {t('sessions.loadingTranscript')}
             </div>
           )}
           {!isLoading && data?.messages?.length === 0 && (
-            <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
+            <div className="text-sm" style={{ color: 'var(--hud-text-dim)' }}>
               {t('sessions.noMessages')}
             </div>
           )}
           {!isLoading && data?.messages?.map((msg: any) => (
-            <div key={msg.id}>
-              <MessageBubble role={msg.role} content={msg.content} />
+            <div key={msg.id} className="mb-3">
+              <div className="text-xs uppercase tracking-wider mb-0.5" style={{ color: 'var(--hud-text-dim)' }}>{msg.role}</div>
+              <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: msg.role === 'user' ? 'var(--hud-accent)' : 'var(--hud-text)' }}>{msg.content}</div>
               {msg.token_count > 0 && (
-                <div className="text-[10px] mb-1 text-right" style={{ color: 'var(--hud-text-dim)', marginTop: '-8px' }}>
+                <div className="text-xs mb-1 text-right" style={{ color: 'var(--hud-text-dim)', marginTop: '-8px' }}>
                   {msg.token_count.toLocaleString()} {t('sessions.tokens')}
                 </div>
               )}
@@ -87,13 +87,13 @@ function SearchResults({ query, onSelect }: { query: string; onSelect: (id: stri
   const { data, isLoading } = useApi(`/sessions/search?q=${encodeURIComponent(query)}`, 0)
 
   if (isLoading) {
-    return <div className="text-[13px] animate-pulse py-2" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.searching')}</div>
+    return <div className="text-sm animate-pulse py-2" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.searching')}</div>
   }
 
   const results = data || []
 
   if (!results.length) {
-    return <div className="text-[13px] py-2" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.noResultsFor')} "{query}"</div>
+    return <div className="text-sm py-2" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.noResultsFor')} "{query}"</div>
   }
 
   return (
@@ -102,7 +102,7 @@ function SearchResults({ query, onSelect }: { query: string; onSelect: (id: stri
         <button
           key={r.session_id}
           onClick={() => onSelect(r.session_id)}
-          className="w-full text-left px-2 py-1.5 text-[13px] cursor-pointer"
+          className="w-full text-left px-2 py-1.5 text-sm cursor-pointer"
           style={{
             borderBottom: '1px solid var(--hud-border)',
             background: 'transparent',
@@ -116,12 +116,12 @@ function SearchResults({ query, onSelect }: { query: string; onSelect: (id: stri
               style={{ background: sourceColor(r.source) }}
             />
             <span className="flex-1 truncate">{r.title}</span>
-            <span className="text-[11px] shrink-0" style={{ color: 'var(--hud-text-dim)' }}>
+            <span className="text-xs shrink-0" style={{ color: 'var(--hud-text-dim)' }}>
               {r.match_type === 'content' ? t('sessions.matchContent') : t('sessions.matchTitle')}
             </span>
           </div>
           {r.snippet && (
-            <div className="mt-0.5 ml-3.5 text-[11px] truncate" style={{ color: 'var(--hud-text-dim)' }}>
+            <div className="mt-0.5 ml-3.5 text-xs truncate" style={{ color: 'var(--hud-text-dim)' }}>
               {r.snippet}
             </div>
           )}
@@ -151,7 +151,7 @@ export default function SessionsPanel() {
   }, [])
 
   if (isLoading && !data) {
-    return <MuiPanel title={t('sessions.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('sessions.loading')}</div></MuiPanel>
+    return <MuiPanel title={t('sessions.title')} className="col-span-full"><div className="glow text-sm animate-pulse">{t('sessions.loading')}</div></MuiPanel>
   }
 
   const sessions = data.sessions || []
@@ -173,7 +173,7 @@ export default function SessionsPanel() {
       )}
 
       <MuiPanel title={t('sessions.activity')} className="col-span-2">
-        <div className="flex gap-6 mb-3 text-[13px]">
+        <div className="flex gap-6 mb-3 text-sm">
           <div>
             <span className="stat-value text-base">{data.total_sessions || 0}</span>
             <span className="stat-label ml-1">{t('sessions.sessions')}</span>
@@ -194,11 +194,11 @@ export default function SessionsPanel() {
           ))}
         </div>
         <div className="mb-2">
-          <div className="text-[13px] uppercase tracking-wider mb-1" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.messagesPerDay')}</div>
+          <div className="text-sm uppercase tracking-wider mb-1" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.messagesPerDay')}</div>
           <Sparkline values={dailyMessages} width={500} height={50} />
         </div>
         <div>
-          <div className="text-[13px] uppercase tracking-wider mb-1" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.sessionsPerDay')}</div>
+          <div className="text-sm uppercase tracking-wider mb-1" style={{ color: 'var(--hud-text-dim)' }}>{t('sessions.sessionsPerDay')}</div>
           <Sparkline values={dailySessions} width={500} height={30} />
         </div>
       </MuiPanel>
@@ -211,7 +211,7 @@ export default function SessionsPanel() {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder={t('sessions.searchSessions')}
-            className="flex-1 px-2 py-1 text-[13px] outline-none"
+            className="flex-1 px-2 py-1 text-sm outline-none"
             style={{
               background: 'var(--hud-bg-deep)',
               border: '1px solid var(--hud-border)',
@@ -222,7 +222,7 @@ export default function SessionsPanel() {
             <button
               type="button"
               onClick={handleClearSearch}
-              className="px-2 py-1 text-[12px] cursor-pointer"
+              className="px-2 py-1 text-xs cursor-pointer"
               style={{ background: 'var(--hud-bg-hover)', color: 'var(--hud-text-dim)', border: '1px solid var(--hud-border)' }}
             >
               ✕
@@ -231,7 +231,7 @@ export default function SessionsPanel() {
             <button
               type="submit"
               disabled={!searchQuery.trim()}
-              className="px-2 py-1 text-[12px] cursor-pointer disabled:opacity-40"
+              className="px-2 py-1 text-xs cursor-pointer disabled:opacity-40"
               style={{ background: 'var(--hud-primary)', color: 'var(--hud-bg-deep)', border: 'none' }}
             >
               {t('sessions.search')}
@@ -243,7 +243,7 @@ export default function SessionsPanel() {
         {showSearch ? (
           <SearchResults query={submittedQuery} onSelect={id => { setActiveTranscript(id); handleClearSearch() }} />
         ) : (
-          <div className="space-y-0.5 text-[13px]">
+          <div className="space-y-0.5 text-sm">
             {sessions.slice(0, 15).map((s: any) => (
               <button
                 key={s.id}

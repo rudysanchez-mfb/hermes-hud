@@ -6,10 +6,10 @@ const fetcher = async (url: string) => {
   return res.json()
 }
 
-/** SWR wrapper for pipeline endpoints — 15s refresh, keep stale data visible. */
+/** SWR wrapper for pipeline endpoints — 10s refresh, keep stale data visible. */
 export function usePipeline<T = any>(path: string) {
   return useSWR<T>(`/api${path}`, fetcher, {
-    refreshInterval: 15_000,
+    refreshInterval: 10_000,
     dedupingInterval: 5_000,
     revalidateOnFocus: false,
     keepPreviousData: true,

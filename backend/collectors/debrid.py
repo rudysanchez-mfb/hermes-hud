@@ -1,5 +1,7 @@
 """Debrid pipeline collector — Premiumize, TorBox, DebridLink, plex-debrid"""
 
+from __future__ import annotations
+
 import json
 import subprocess
 import time
@@ -23,6 +25,7 @@ class DebridService:
     active: int = 0
     total: int = 0
     errors: list[str] = field(default_factory=list)
+    recent_transfers: list[Transfer] = field(default_factory=list)
 
 @dataclass
 class Transfer:
@@ -32,6 +35,7 @@ class Transfer:
     progress: float = 0.0
     speed: Optional[str] = None
     size: Optional[str] = None
+    id: Optional[str] = None
 
 @dataclass
 class MountStatus:
@@ -95,6 +99,12 @@ def _mount_ok(path: str) -> MountStatus:
         return MountStatus(path=path, ok=False, error=str(e)[:100])
 
 
+def invalidate_debrid_cache() -> None:
+    """Clear the TTL cache so the next collect_debrid() call fetches fresh data."""
+    global _cache
+    _cache = None
+
+
 # ═══ Main collector ═══
 
 def collect_debrid() -> DebridPipelineState:
@@ -125,8 +135,22 @@ def collect_debrid() -> DebridPipelineState:
                 active=pm_active,
                 total=pm_total,
             ))
+            pm_svc = state.services[-1]
+            # Recent transfers (last 5, sorted: error → running → finished)
+            _prio = {"error": 0, "running": 1, "finished": 2}
+            _all = sorted(xfers.get("transfers", []),
+                          key=lambda t: _prio.get(t.get("status", ""), 99))
+            for t in _all[:5]:
+                pm_svc.recent_transfers.append(Transfer(
+                    id=str(t.get("id", "")),
+                    name=t.get("name", "?"),
+                    service="Premiumize",
+                    status=t.get("status", "?"),
+                    progress=t.get("progress", 0) * 100 if t.get("status") == "running" else 0,
+                ))
             for t in active:
                 state.transfers.append(Transfer(
+                    id=str(t.get("id", "")),
                     name=t.get("name", "?"), service="Premiumize",
                     status="downloading", progress=t.get("progress", 0) * 100,
                     speed=t.get("speed"), size=str(t.get("filesize", ""))))
@@ -134,7 +158,6 @@ def collect_debrid() -> DebridPipelineState:
                 # Count errors
                 failed = [t for t in xfers.get("transfers", []) if t.get("status") == "error"]
                 if failed:
-                    pm_svc = state.services[-1]
                     pm_svc.errors = [f.get("name", "?")[:60] for f in failed[:3]]
             if storage_pct and storage_pct > 90:
                 alerts.append(Alert("warning", f"Premiumize storage at {state.services[-1].storage_pct}%"))
@@ -159,8 +182,24 @@ def collect_debrid() -> DebridPipelineState:
                 active=len(active),
                 total=len(mylist.get("data", [])),
             ))
+            tb_svc = state.services[-1]
+            # Recent transfers (last 5, sorted: error → downloading → done)
+            _prio2 = {"error": 0, "meta": 0, "dead": 0,
+                       "downloading": 1, "uploading": 1, "processing": 1,
+                       "done": 2, "completed": 2, "seeding": 2, "cached": 2}
+            _all2 = sorted(mylist.get("data", []),
+                           key=lambda t: _prio2.get(t.get("download_state", ""), 99))
+            for t in _all2[:5]:
+                tb_svc.recent_transfers.append(Transfer(
+                    id=str(t.get("id", t.get("hash", ""))),
+                    name=t.get("name", "?"),
+                    service="TorBox",
+                    status=t.get("download_state", "?"),
+                    progress=t.get("progress", 0),
+                ))
             for t in active:
                 state.transfers.append(Transfer(
+                    id=str(t.get("id", t.get("hash", ""))),
                     name=t.get("name", "?"), service="TorBox",
                     status="downloading", progress=t.get("progress", 0),
                     size=t.get("size")))
@@ -182,8 +221,24 @@ def collect_debrid() -> DebridPipelineState:
                 active=len(dl_active),
                 total=len(dls.get("value", [])),
             ))
+            dl_svc = state.services[-1]
+            # Recent transfers (last 5, sorted: error → downloading → completed)
+            _prio3 = {"error": 0, "failed": 0,
+                       "downloading": 1, "processing": 1,
+                       "completed": 2, "done": 2, "downloaded": 2}
+            _all3 = sorted(dls.get("value", []),
+                           key=lambda t: _prio3.get(t.get("status", ""), 99))
+            for d in _all3[:5]:
+                dl_svc.recent_transfers.append(Transfer(
+                    id=str(d.get("id", "")),
+                    name=d.get("name", "?"),
+                    service="DebridLink",
+                    status=d.get("status", "?"),
+                    progress=d.get("downloadPercent", 0),
+                ))
             for d in dl_active:
                 state.transfers.append(Transfer(
+                    id=str(d.get("id", "")),
                     name=d.get("name", "?"), service="DebridLink",
                     status="downloading", progress=d.get("downloadPercent", 0),
                     speed=str(d.get("downloadSpeed", "")) + " B/s"))

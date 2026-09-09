@@ -51,17 +51,17 @@ function SkillCard({ skill, onClick }: { skill: Skill; onClick: () => void }) {
       onMouseLeave={hoverOff}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
-        <span className="font-bold text-[13px]" style={{ color: 'var(--hud-primary)' }}>{skill.name}</span>
+        <span className="font-bold text-sm" style={{ color: 'var(--hud-primary)' }}>{skill.name}</span>
         {skill.is_custom && (
-          <span className="text-[10px] px-1 py-0.5 shrink-0" style={{ background: 'var(--hud-accent)', color: 'var(--hud-bg-deep)' }}>
+          <span className="text-xs px-1 py-0.5 shrink-0" style={{ background: 'var(--hud-accent)', color: 'var(--hud-bg-deep)' }}>
             {t('dashboard.custom')}
           </span>
         )}
       </div>
-      <div className="text-[12px] mb-2 line-clamp-2" style={{ color: 'var(--hud-text-dim)' }}>
+      <div className="text-xs mb-2 line-clamp-2" style={{ color: 'var(--hud-text-dim)' }}>
         {skill.description?.slice(0, 140)}{skill.description?.length > 140 ? '...' : ''}
       </div>
-      <div className="flex items-center gap-3 text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>
+      <div className="flex items-center gap-3 text-xs" style={{ color: 'var(--hud-text-dim)' }}>
         {skill.usage_count > 0 && (
           <span>
             <strong style={{ color: 'var(--hud-primary)' }}>{formatNumber(skill.usage_count)}</strong> {t('skills.uses')}
@@ -109,30 +109,30 @@ function CategoryRow({
           border: 'none',
         }}
       >
-        <span className="text-[13px] w-4" style={{ color: 'var(--hud-primary)' }}>
+        <span className="text-sm w-4" style={{ color: 'var(--hud-primary)' }}>
           {isExpanded ? '▼' : '▶'}
         </span>
-        <span className="font-bold text-[13px] flex-1" style={{ color: isExpanded ? 'var(--hud-primary)' : 'var(--hud-text)' }}>
+        <span className="font-bold text-sm flex-1" style={{ color: isExpanded ? 'var(--hud-primary)' : 'var(--hud-text)' }}>
           {category}
         </span>
 
         {/* Stats pills */}
         <div className="flex items-center gap-2">
-          <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-text-dim)' }}>
+          <span className="text-xs px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-text-dim)' }}>
             {formatNumber(skills.length)} {skills.length === 1 ? t('skills.skill') : t('skills.skills')}
           </span>
           {totalUsage > 0 && (
-            <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-primary)' }}>
+            <span className="text-xs px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-primary)' }}>
               {formatNumber(totalUsage)} {t('skills.uses')}
             </span>
           )}
           {customCount > 0 && (
-            <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-accent)', color: 'var(--hud-bg-deep)' }}>
+            <span className="text-xs px-1.5 py-0.5" style={{ background: 'var(--hud-accent)', color: 'var(--hud-bg-deep)' }}>
               {formatNumber(customCount)} {t('dashboard.custom')}
             </span>
           )}
           {totalLinked > 0 && (
-            <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-text-dim)' }}>
+            <span className="text-xs px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-text-dim)' }}>
               {formatNumber(totalLinked)} {t('skills.files')}
             </span>
           )}
@@ -213,7 +213,7 @@ export default function SkillsPanel() {
   }, [filter, mostUsed])
 
   if (isLoading && !data) {
-    return <Panel title={t('skills.title')} className="col-span-full"><div className="glow text-[13px] animate-pulse">{t('skills.scanning')}</div></Panel>
+    return <Panel title={t('skills.title')} className="col-span-full"><div className="glow text-sm animate-pulse">{t('skills.scanning')}</div></Panel>
   }
 
   return (
@@ -225,17 +225,17 @@ export default function SkillsPanel() {
       <Panel title={t('skills.title')} className="col-span-full">
         {/* Summary bar */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
-          <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-primary)' }}>
+          <span className="text-sm px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-primary)' }}>
             {formatNumber(data?.total || 0)} {t('skills.total')}
           </span>
-          <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-accent)' }}>
+          <span className="text-sm px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-accent)' }}>
             {formatNumber(data?.custom_count || 0)} {t('dashboard.custom')}
           </span>
-          <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-text-dim)' }}>
+          <span className="text-sm px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-text-dim)' }}>
             {formatNumber(visibleCats.length)} {t('skills.categories')}
           </span>
           {totalUsage > 0 && (
-            <span className="text-[13px] px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-primary)' }}>
+            <span className="text-sm px-2 py-0.5" style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-primary)' }}>
               {formatNumber(totalUsage)} {t('skills.totalUses')}
             </span>
           )}
@@ -244,7 +244,7 @@ export default function SkillsPanel() {
             value={filterQuery}
             onChange={e => setFilterQuery(e.target.value)}
             placeholder={t('skills.filterPlaceholder')}
-            className="ml-auto w-full sm:w-56 px-2 py-1 text-[13px] outline-none"
+            className="ml-auto w-full sm:w-56 px-2 py-1 text-sm outline-none"
             style={{
               background: 'var(--hud-bg-deep)',
               border: '1px solid var(--hud-border-subtle)',
@@ -256,7 +256,7 @@ export default function SkillsPanel() {
         {/* Most used skills */}
         {filteredMostUsed.length > 0 && (
           <div className="mb-4">
-            <div className="text-[12px] uppercase tracking-wider mb-2" style={{ color: 'var(--hud-text-dim)' }}>
+            <div className="text-xs uppercase tracking-wider mb-2" style={{ color: 'var(--hud-text-dim)' }}>
               {t('skills.mostUsed')}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -265,7 +265,7 @@ export default function SkillsPanel() {
                   type="button"
                   key={skill.name}
                   onClick={() => setSelectedSkill(skill.name)}
-                  className="text-[12px] px-2 py-1 cursor-pointer"
+                  className="text-xs px-2 py-1 cursor-pointer"
                   style={{
                     background: 'var(--hud-bg-panel)',
                     border: '1px solid var(--hud-border-subtle)',
@@ -295,7 +295,7 @@ export default function SkillsPanel() {
         </div>
 
         {visibleCats.length === 0 && (
-          <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
+          <div className="text-sm" style={{ color: 'var(--hud-text-dim)' }}>
             {filter ? t('skills.noMatches') : t('skills.noSkills')}
           </div>
         )}

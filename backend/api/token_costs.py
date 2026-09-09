@@ -2,10 +2,11 @@
 
 import re
 import sqlite3
-from datetime import datetime, timedelta
+from calendar import monthrange
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from backend.collectors.utils import default_hermes_dir
 
@@ -114,6 +115,95 @@ MODEL_PRICING: dict[str, dict] = {
 DEFAULT_PRICING = _FREE
 _SORTED_KEYS = sorted(MODEL_PRICING, key=len, reverse=True)
 _SMALL_MODEL_RE = re.compile(r'[-_](?:1\.?[58]b|3b|4b|7b|8b|9b|13b|14b)\b')
+
+# ── Provider grouping for provider_breakdown ───────────────
+PROVIDER_GROUP_MAP = {
+    "deepseek": ["deepseek"],
+    "anthropic": ["claude", "anthropic"],
+    "openai": ["gpt", "openai"],
+    "gemini": ["gemini"],
+    "xai": ["grok", "xai"],
+    "mistral": ["mistral", "devstral"],
+    "xiaomi": ["mimo"],
+    "minimax": ["minimax"],
+    "kimi": ["kimi"],
+    "zai-glm": ["glm", "zai"],
+    "qwen": ["qwen"],
+    "other": ["llama", "local", "default"],
+}
+
+
+def _date_range(range_key: str, since: str | None, until: str | None) -> tuple[float | None, float | None, str, str]:
+    """Convert range + since/until to (start_ts, end_ts, start_iso, end_iso)."""
+    VALID_RANGES = {"today", "7d", "30d", "90d", "this_month", "last_month", "all"}
+    if range_key not in VALID_RANGES:
+        raise HTTPException(status_code=400, detail=f"Invalid range '{range_key}'; expected one of: {', '.join(sorted(VALID_RANGES))}")
+
+    now = datetime.now(timezone.utc)
+    end = now
+
+    if range_key == "today":
+        start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif range_key == "7d":
+        start = now - timedelta(days=7)
+    elif range_key == "30d":
+        start = now - timedelta(days=30)
+    elif range_key == "90d":
+        start = now - timedelta(days=90)
+    elif range_key == "this_month":
+        start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    elif range_key == "last_month":
+        if now.month == 1:
+            start = now.replace(year=now.year - 1, month=12, day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            start = now.replace(month=now.month - 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        _, last_day = monthrange(start.year, start.month)
+        end = start.replace(day=last_day, hour=23, minute=59, second=59, microsecond=999999)
+    else:  # "all"
+        start = None
+        end = None
+
+    # Override with explicit since/until
+    if since:
+        try:
+            start = datetime.strptime(since, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid 'since' date; expected YYYY-MM-DD")
+    if until:
+        try:
+            end = datetime.strptime(until, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999, tzinfo=timezone.utc)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid 'until' date; expected YYYY-MM-DD")
+
+    start_ts = start.timestamp() if start else None
+    end_ts = end.timestamp() if end else None
+    start_iso = start.isoformat() if start else "all"
+    end_iso = end.isoformat() if end else "now"
+
+    return start_ts, end_ts, start_iso, end_iso
+
+
+def _group_key(started: datetime | None, group_by: str) -> str:
+    """Return the grouping key for a session based on started time and group_by."""
+    if not started:
+        return "unknown"
+    if group_by == "week":
+        iso = started.isocalendar()
+        return f"{iso.year}-W{iso.week:02d}"
+    elif group_by == "month":
+        return started.strftime("%Y-%m")
+    else:  # "day"
+        return started.strftime("%Y-%m-%d")
+
+
+def _assign_provider(model: str) -> str:
+    """Assign a model to a provider bucket based on PROVIDER_GROUP_MAP."""
+    lower = model.lower()
+    for provider, prefixes in PROVIDER_GROUP_MAP.items():
+        for prefix in prefixes:
+            if lower.startswith(prefix) or prefix in lower:
+                return provider
+    return "other"
 
 
 def _get_pricing(model: str | None) -> tuple[dict, str]:
@@ -227,13 +317,30 @@ def _finalize_bucket(bucket: dict) -> dict:
 
 
 @router.get("/token-costs")
-async def get_token_costs():
-    """Token usage and estimated costs, broken down by model."""
+async def get_token_costs(
+    range: str = "all",
+    since: str | None = None,
+    until: str | None = None,
+    group_by: str = "day",
+):
+    """Token usage and estimated costs, broken down by model.
+
+    Args:
+        range: "today", "7d", "30d", "90d", "this_month", "last_month", "all"
+        since: YYYY-MM-DD override for start date
+        until: YYYY-MM-DD override for end date
+        group_by: "day", "week", or "month"
+    """
+    if group_by not in {"day", "week", "month"}:
+        raise HTTPException(status_code=400, detail=f"Invalid group_by '{group_by}'; expected day, week, or month")
+
     hermes_dir = default_hermes_dir()
     db_path = str(Path(hermes_dir) / "state.db")
 
     if not Path(db_path).exists():
         return {"error": "state.db not found"}
+
+    start_ts, end_ts, start_iso, end_iso = _date_range(range, since, until)
 
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
@@ -248,6 +355,20 @@ async def get_token_costs():
         "actual_cost_usd"
         if "actual_cost_usd" in columns else "NULL AS actual_cost_usd"
     )
+
+    # Build query with optional date filtering
+    where_clause = ""
+    params: list = []
+    if start_ts is not None and end_ts is not None:
+        where_clause = "WHERE started_at >= ? AND started_at <= ?"
+        params = [start_ts, end_ts]
+    elif start_ts is not None:
+        where_clause = "WHERE started_at >= ?"
+        params = [start_ts]
+    elif end_ts is not None:
+        where_clause = "WHERE started_at <= ?"
+        params = [end_ts]
+
     cur.execute(f"""
         SELECT id, source, {title_column}, started_at, model,
                message_count, tool_call_count,
@@ -256,8 +377,9 @@ async def get_token_costs():
                reasoning_tokens,
                {actual_cost_column}
         FROM sessions
+        {where_clause}
         ORDER BY started_at ASC
-    """)
+    """, params)
 
     # Per-model aggregation
     by_model: dict[str, dict] = {}
@@ -276,7 +398,7 @@ async def get_token_costs():
     actual_sessions = 0
     total_sessions = 0
 
-    # Daily trend
+    # Daily trend (uses group_by key)
     daily: dict[str, dict] = {}
     top_sessions: list[dict] = []
     recent_start = datetime.now() - timedelta(days=7)
@@ -288,6 +410,7 @@ async def get_token_costs():
         model = row["model"] or "unknown"
         started_ts = row["started_at"]
         started = datetime.fromtimestamp(started_ts) if started_ts else None
+        day_key = _group_key(started, group_by)
         day = started.strftime("%Y-%m-%d") if started else "unknown"
         is_today = day == today
 
@@ -337,8 +460,8 @@ async def get_token_costs():
             actual_sessions += 1
 
         # Daily
-        if day not in daily:
-            daily[day] = {
+        if day_key not in daily:
+            daily[day_key] = {
                 "cost": 0.0,
                 "estimated_cost": 0.0,
                 "actual_cost": 0.0,
@@ -346,13 +469,13 @@ async def get_token_costs():
                 "sessions": 0,
                 "cache_savings": 0.0,
             }
-        daily[day]["cost"] += cost
-        daily[day]["estimated_cost"] += estimated
+        daily[day_key]["cost"] += cost
+        daily[day_key]["estimated_cost"] += estimated
         if actual is not None:
-            daily[day]["actual_cost"] += actual
-        daily[day]["tokens"] += tokens["input"] + tokens["output"]
-        daily[day]["sessions"] += 1
-        daily[day]["cache_savings"] += savings
+            daily[day_key]["actual_cost"] += actual
+        daily[day_key]["tokens"] += tokens["input"] + tokens["output"]
+        daily[day_key]["sessions"] += 1
+        daily[day_key]["cache_savings"] += savings
 
         if started:
             if started >= recent_start:
@@ -392,10 +515,38 @@ async def get_token_costs():
     model_list = [_finalize_bucket(m) for m in model_list]
     today_final = _finalize_bucket(today_data)
 
+    # ── Provider breakdown ─────────────────────────────────
+    provider_buckets: dict[str, dict] = {}
+    for m in model_list:
+        provider = _assign_provider(m["model"])
+        if provider not in provider_buckets:
+            provider_buckets[provider] = {
+                "provider": provider,
+                "total_cost": 0.0,
+                "total_tokens": 0,
+                "session_count": 0,
+                "models": [],
+            }
+        pb = provider_buckets[provider]
+        pb["total_cost"] += m["billed_cost_usd"]
+        pb["total_tokens"] += m["total_tokens"]
+        pb["session_count"] += m["session_count"]
+        pb["models"].append(m["model"])
+
+    # Sort provider buckets by total_cost descending
+    provider_list = sorted(provider_buckets.values(), key=lambda p: -p["total_cost"])
+    for p in provider_list:
+        p["total_cost"] = _round_money(p["total_cost"])
+
     sorted_days = sorted(daily.keys())
     delta = recent_7d_cost - previous_7d_cost
 
     return {
+        "range": {
+            "start": start_iso,
+            "end": end_iso,
+            "group_by": group_by,
+        },
         "today": {
             "date": today,
             **today_final,
@@ -428,6 +579,7 @@ async def get_token_costs():
             "cache_savings_usd": _round_money(all_cache_savings),
         },
         "by_model": model_list,
+        "provider_breakdown": provider_list,
         "top_sessions": sorted(top_sessions, key=lambda s: -s["billed_cost_usd"])[:10],
         "trend_summary": {
             "recent_7d_cost_usd": _round_money(recent_7d_cost),
@@ -438,16 +590,16 @@ async def get_token_costs():
         },
         "daily_trend": [
             {
-                "date": day,
-                "cost": round(daily[day]["cost"], 2),
-                "estimated_cost_usd": round(daily[day]["estimated_cost"], 2),
-                "actual_cost_usd": round(daily[day]["actual_cost"], 2),
-                "billed_cost_usd": round(daily[day]["cost"], 2),
-                "cache_savings_usd": round(daily[day]["cache_savings"], 2),
-                "tokens": daily[day]["tokens"],
-                "sessions": daily[day]["sessions"],
+                "date": dkey,
+                "cost": round(daily[dkey]["cost"], 2),
+                "estimated_cost_usd": round(daily[dkey]["estimated_cost"], 2),
+                "actual_cost_usd": round(daily[dkey]["actual_cost"], 2),
+                "billed_cost_usd": round(daily[dkey]["cost"], 2),
+                "cache_savings_usd": round(daily[dkey]["cache_savings"], 2),
+                "tokens": daily[dkey]["tokens"],
+                "sessions": daily[dkey]["sessions"],
             }
-            for day in sorted_days
+            for dkey in sorted_days
         ],
         "pricing_table": {k: {kk: vv for kk, vv in v.items()} for k, v in MODEL_PRICING.items()},
     }

@@ -22,7 +22,7 @@ export default function SudoPanel() {
   if (isLoading && !data) {
     return (
       <MuiPanel title={t('sudo.title')} className="col-span-full">
-        <div className="glow text-[13px] animate-pulse">{t('sudo.loading')}</div>
+        <div className="glow text-sm animate-pulse">{t('sudo.loading')}</div>
       </MuiPanel>
     )
   }
@@ -40,7 +40,7 @@ export default function SudoPanel() {
     <>
       {/* Panel 1 — Configuration */}
       <MuiPanel title={t('sudo.config')} className="col-span-1">
-        <div className="space-y-2 text-[13px]">
+        <div className="space-y-2 text-sm">
           <div className="flex justify-between py-0.5">
             <span style={{ color: 'var(--hud-text-dim)' }}>{t('sudo.approvalMode')}</span>
             <span style={{ color: config.approval_mode === 'manual' ? 'var(--hud-success)' : 'var(--hud-warning)' }}>
@@ -58,7 +58,7 @@ export default function SudoPanel() {
             ) : (
               <div className="space-y-0.5">
                 {allowlist.map((cmd: string, i: number) => (
-                  <div key={i} className="font-mono text-[12px] px-1.5 py-0.5"
+                  <div key={i} className="font-mono text-xs px-1.5 py-0.5"
                        style={{ background: 'var(--hud-bg-panel)', color: 'var(--hud-warning)' }}>
                     {cmd}
                   </div>
@@ -86,7 +86,7 @@ export default function SudoPanel() {
 
       {/* Panel 2 — Statistics */}
       <MuiPanel title={t('sudo.stats')} className="col-span-1">
-        <div className="space-y-2 text-[13px]">
+        <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span style={{ color: 'var(--hud-text-dim)' }}>{t('sudo.totalCommands')}</span>
             <span className="glow font-bold">{stats.total_commands ?? 0}</span>
@@ -122,7 +122,7 @@ export default function SudoPanel() {
       {/* Panel 3 — Command History */}
       <MuiPanel title={t('sudo.history')} className="col-span-full">
         {commands.length === 0 ? (
-          <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
+          <div className="text-sm" style={{ color: 'var(--hud-text-dim)' }}>
             {t('sudo.noCommands')}
           </div>
         ) : (
@@ -130,7 +130,7 @@ export default function SudoPanel() {
             {commands.map((cmd: any, i: number) => {
               const o = OUTCOME[cmd.outcome] || OUTCOME.unknown
               return (
-                <div key={i} className="p-2 text-[13px]"
+                <div key={i} className="p-2 text-sm"
                      style={{ background: 'var(--hud-bg-panel)', borderLeft: `2px solid ${o.color}` }}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span style={{ color: o.color }}>{o.icon}</span>

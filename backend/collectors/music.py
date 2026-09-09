@@ -41,7 +41,9 @@ class EnricherStatus:
     with_artwork: int = 0
     no_bio: int = 0
     total_processed: int = 0
-    artists: list[dict] = field(default_factory=list)  # recently processed
+    artists: list[dict] = field(default_factory=list)
+    runs: list[dict] = field(default_factory=list)  # [{started_at, ended_at, stats}]
+    selected_run: Optional[str] = None
 
 @dataclass
 class Alert:
@@ -219,52 +221,192 @@ def collect_music() -> MusicPipelineState:
 
     # ── Enricher ──
     try:
-        enricher_path = Path.home() / ".hermes" / "state" / "music-enricher-state.json"
-        if enricher_path.exists():
+        # Hermes agent runs in a sandboxed HOME; enricher writes there
+        sandbox_path = Path("/home/rsanchez/.hermes/home/.hermes/state/music-enricher-state.json")
+        real_path = Path.home() / ".hermes" / "state" / "music-enricher-state.json"
+        candidates = [p for p in (sandbox_path, real_path) if p.exists()]
+        enricher_path = max(candidates, key=lambda p: p.stat().st_mtime) if candidates else None
+        if enricher_path and enricher_path.exists():
             data = json.loads(enricher_path.read_text(encoding="utf-8"))
             stats = data.get("stats", {})
             processed = data.get("processed", {})
-            artist_list = []
-            enriched_count = 0
-            artwork_count = 0
-            no_bio_count = 0
-            for key, val in processed.items():
+            runs_raw = data.get("runs", [])
+
+            # Build runs metadata for the frontend selector
+            runs_meta = []
+            for run in runs_raw:
+                run_stats = run.get("stats", {})
+                runs_meta.append({
+                    "started_at": run.get("started_at", ""),
+                    "ended_at": run.get("ended_at", ""),
+                    "enriched": run_stats.get("enriched", 0),
+                    "no_bio": run_stats.get("no_bio", 0),
+                    "total": run_stats.get("total", len(run.get("artists", []))),
+                })
+
+            def _build_artist_entry(src: dict, key: str = "") -> dict:
+                """Build a normalized artist entry from either processed dict or run artist."""
                 entry = {
-                    "name": val.get("name", "?"),
-                    "status": val.get("status", "?"),
+                    "name": src.get("name", "?"),
+                    "status": src.get("status", "?"),
+                    "key": src.get("key", key),
                 }
-                if val.get("status") == "enriched":
-                    enriched_count += 1
-                    entry["chars"] = val.get("chars", 0)
-                    entry["source"] = val.get("source", "?")
-                    entry["artwork"] = val.get("artwork", False)
-                    if val.get("artwork"):
-                        artwork_count += 1
-                    else:
-                        # Infer why artwork wasn't pushed
+                if src.get("status") == "enriched":
+                    entry["chars"] = src.get("chars", 0)
+                    entry["source"] = src.get("source", "?")
+                    entry["artwork"] = src.get("artwork", False)
+                    entry["description"] = src.get("description", "")
+                    entry["artwork_source"] = src.get("artwork_source", "")
+                    if not src.get("artwork"):
                         if entry["chars"] < 200:
                             entry["reason"] = "Bio too short for artwork (< 200 chars)"
                         else:
                             entry["reason"] = "No Wikipedia image available"
-                elif val.get("status") == "no_bio":
-                    no_bio_count += 1
-                artist_list.append(entry)
+                return entry
 
-            # Sort: enriched first, then no_bio
+            def _count_stats(artist_list: list[dict]) -> tuple[int, int, int]:
+                enriched = sum(1 for a in artist_list if a.get("status") == "enriched")
+                artwork = sum(1 for a in artist_list if a.get("artwork"))
+                no_bio = sum(1 for a in artist_list if a.get("status") == "no_bio")
+                return enriched, artwork, no_bio
+
+            # Build full artist list from processed dict (represents current library state)
+            artist_list = []
+            for key, val in processed.items():
+                artist_list.append(_build_artist_entry(val, key))
             artist_list.sort(key=lambda a: (0 if a["status"] == "enriched" else 1, a["name"]))
-            
-            state.enricher = EnricherStatus(
-                last_run=stats.get("last_run", ""),
-                enriched=enriched_count,
-                with_artwork=artwork_count,
-                no_bio=no_bio_count,
-                total_processed=len(processed),
-                artists=artist_list,
-            )
+            enriched_count, artwork_count, no_bio_count = _count_stats(list(processed.values()))
+
+            if runs_raw:
+                latest_run = runs_raw[-1]
+                state.enricher = EnricherStatus(
+                    last_run=latest_run.get("started_at", stats.get("last_run", "")),
+                    enriched=enriched_count,
+                    with_artwork=artwork_count,
+                    no_bio=no_bio_count,
+                    total_processed=len(processed),
+                    artists=artist_list,
+                    runs=runs_meta,
+                    selected_run=latest_run.get("started_at", ""),
+                )
+            else:
+                # Backward compat: flat processed dict
+                state.enricher = EnricherStatus(
+                    last_run=stats.get("last_run", ""),
+                    enriched=enriched_count,
+                    with_artwork=artwork_count,
+                    no_bio=no_bio_count,
+                    total_processed=len(processed),
+                    artists=artist_list,
+                    runs=runs_meta,
+                )
     except Exception:
         pass
 
     state.alerts = alerts
     state.updated_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     _cache = (now, state)
+    return state
+
+
+def apply_enricher_run_filter(state: MusicPipelineState, run_date: Optional[str]) -> MusicPipelineState:
+    """Filter enricher data to a specific run date. Mutates state in-place."""
+    if not run_date:
+        return state
+
+    if run_date == "all":
+        # All-time aggregate — rebuild from flat processed
+        sandbox_path = Path("/home/rsanchez/.hermes/home/.hermes/state/music-enricher-state.json")
+        real_path = Path.home() / ".hermes" / "state" / "music-enricher-state.json"
+        candidates = [p for p in (sandbox_path, real_path) if p.exists()]
+        enricher_path = max(candidates, key=lambda p: p.stat().st_mtime) if candidates else None
+        if enricher_path and enricher_path.exists():
+            data = json.loads(enricher_path.read_text(encoding="utf-8"))
+            processed = data.get("processed", {})
+            artist_list = []
+            for key, val in processed.items():
+                entry = {
+                    "name": val.get("name", "?"),
+                    "status": val.get("status", "?"),
+                    "key": key,
+                }
+                if val.get("status") == "enriched":
+                    entry["chars"] = val.get("chars", 0)
+                    entry["source"] = val.get("source", "?")
+                    entry["artwork"] = val.get("artwork", False)
+                    entry["description"] = val.get("description", "")
+                    if val.get("artwork"):
+                        pass
+                    else:
+                        if entry["chars"] < 200:
+                            entry["reason"] = "Bio too short for artwork (< 200 chars)"
+                        else:
+                            entry["reason"] = "No Wikipedia image available"
+                artist_list.append(entry)
+            artist_list.sort(key=lambda a: (0 if a["status"] == "enriched" else 1, a["name"]))
+            enriched = sum(1 for a in artist_list if a["status"] == "enriched")
+            artwork = sum(1 for a in artist_list if a.get("artwork"))
+            no_bio = sum(1 for a in artist_list if a["status"] == "no_bio")
+            state.enricher.artists = artist_list
+            state.enricher.enriched = enriched
+            state.enricher.with_artwork = artwork
+            state.enricher.no_bio = no_bio
+            state.enricher.total_processed = len(artist_list)
+            state.enricher.selected_run = "all"
+        return state
+
+    # Specific run — requires runs to exist
+    if not state.enricher.runs:
+        return state
+
+    # Find matching run by date prefix
+    target_run = None
+    for run in state.enricher.runs:
+        if run.get("started_at", "").startswith(run_date):
+            target_run = run
+            break
+
+    if not target_run:
+        return state  # no match — keep current
+
+    # Re-read the full run data from disk (run artists not kept in memory)
+    sandbox_path = Path("/home/rsanchez/.hermes/home/.hermes/state/music-enricher-state.json")
+    real_path = Path.home() / ".hermes" / "state" / "music-enricher-state.json"
+    enricher_path = sandbox_path if sandbox_path.exists() else real_path
+    if enricher_path.exists():
+        data = json.loads(enricher_path.read_text(encoding="utf-8"))
+        for run in data.get("runs", []):
+            if run.get("started_at", "").startswith(run_date):
+                run_artists = run.get("artists", [])
+                artist_list = []
+                for a in run_artists:
+                    entry = {
+                        "name": a.get("name", "?"),
+                        "status": a.get("status", "?"),
+                        "key": a.get("key", ""),
+                    }
+                    if a.get("status") == "enriched":
+                        entry["chars"] = a.get("chars", 0)
+                        entry["source"] = a.get("source", "?")
+                        entry["artwork"] = a.get("artwork", False)
+                        entry["description"] = a.get("description", "")
+                        entry["artwork_source"] = a.get("artwork_source", "")
+                        if not a.get("artwork"):
+                            if entry["chars"] < 200:
+                                entry["reason"] = "Bio too short for artwork (< 200 chars)"
+                            else:
+                                entry["reason"] = "No Wikipedia image available"
+                    artist_list.append(entry)
+                artist_list.sort(key=lambda a: (0 if a["status"] == "enriched" else 1, a["name"]))
+                enriched = sum(1 for a in artist_list if a["status"] == "enriched")
+                artwork = sum(1 for a in artist_list if a.get("artwork"))
+                no_bio = sum(1 for a in artist_list if a["status"] == "no_bio")
+                state.enricher.artists = artist_list
+                state.enricher.enriched = enriched
+                state.enricher.with_artwork = artwork
+                state.enricher.no_bio = no_bio
+                state.enricher.total_processed = len(artist_list)
+                state.enricher.selected_run = run.get("started_at", "")
+                break
+
     return state

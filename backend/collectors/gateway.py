@@ -147,7 +147,6 @@ def collect_managed_tools(
             diagnostics.append(
                 "Nous Portal auth is present." if nous_auth_present else "Nous Portal auth is missing."
             )
-            safe_actions.append("gateway-restart")
             if not nous_auth_present:
                 missing_config.append("Nous Portal auth")
         else:

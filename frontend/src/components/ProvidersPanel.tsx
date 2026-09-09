@@ -45,7 +45,7 @@ export default function ProvidersPanel() {
   if (isLoading && !data) {
     return (
       <MuiPanel title={t('providers.title')} className="col-span-full">
-        <div className="glow text-[13px] animate-pulse">{t('providers.loading')}</div>
+        <div className="glow text-sm animate-pulse">{t('providers.loading')}</div>
       </MuiPanel>
     )
   }
@@ -55,12 +55,12 @@ export default function ProvidersPanel() {
 
   return (
     <MuiPanel title={t('providers.title')} className="col-span-full">
-      <div className="text-[12px] mb-3" style={{ color: 'var(--hud-text-dim)' }}>
+      <div className="text-xs mb-3" style={{ color: 'var(--hud-text-dim)' }}>
         {t('providers.subtitle')}
       </div>
       {warnings.length > 0 && (
         <div
-          className="mb-3 space-y-1.5 py-2 px-3 text-[12px]"
+          className="mb-3 space-y-1.5 py-2 px-3 text-xs"
           style={{
             border: '1px solid var(--hud-warning)',
             borderLeft: '3px solid var(--hud-warning)',
@@ -75,11 +75,11 @@ export default function ProvidersPanel() {
         </div>
       )}
       {providers.length === 0 && (
-        <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
+        <div className="text-sm" style={{ color: 'var(--hud-text-dim)' }}>
           {t('providers.none')}
         </div>
       )}
-      <div className="space-y-2 text-[13px]">
+      <div className="space-y-2 text-sm">
         {providers.map((p) => {
           const when = p.expires_at
             ? `${t('providers.expires')} ${timeAgo(p.expires_at)}`
@@ -100,14 +100,14 @@ export default function ProvidersPanel() {
                 <span className="font-medium">{p.name}</span>
                 {p.is_active && (
                   <span
-                    className="text-[10px] px-1.5 py-0.5 rounded"
+                    className="text-xs px-1.5 py-0.5 rounded"
                     style={{ background: 'var(--hud-primary)', color: 'var(--hud-bg)' }}
                   >
                     {t('providers.active')}
                   </span>
                 )}
                 {p.auth_mode && (
-                  <span className="text-[10px]" style={{ color: 'var(--hud-text-dim)' }}>
+                  <span className="text-xs" style={{ color: 'var(--hud-text-dim)' }}>
                     {p.auth_mode}
                   </span>
                 )}
@@ -121,12 +121,12 @@ export default function ProvidersPanel() {
               <span>{when}</span>
             </div>
             {p.scope && (
-              <div className="mt-0.5 text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>
+              <div className="mt-0.5 text-xs" style={{ color: 'var(--hud-text-dim)' }}>
                 {t('providers.scope')}: {p.scope}
               </div>
             )}
             {(p.warnings ?? []).length > 0 && (
-              <div className="mt-1 space-y-0.5 text-[11px]" style={{ color: 'var(--hud-warning)' }}>
+              <div className="mt-1 space-y-0.5 text-xs" style={{ color: 'var(--hud-warning)' }}>
                 {(p.warnings ?? []).map((warning) => (
                   <div key={warning}>● {warning}</div>
                 ))}

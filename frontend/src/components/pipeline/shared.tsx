@@ -1,6 +1,7 @@
 import {
-  Box, Paper, Typography, Stack, Alert, LinearProgress, Chip
+  Box, Paper, Typography, Stack, Alert, LinearProgress, Chip, IconButton
 } from '@mui/material'
+import DeleteIcon from '@mui/icons-material/Delete'
 import type { ReactNode } from 'react'
 
 // ── Alert strip ───────────────────────────────────────────
@@ -67,16 +68,30 @@ interface ProgressRowProps {
   speed?: string
   size?: string
   status?: string
+  /** Called when user clicks delete. Parent handles confirmation dialog. */
+  onDelete?: () => void
 }
 
-export function ProgressRow({ name, service, pct, speed, size, status }: ProgressRowProps) {
+export function ProgressRow({ name, service, pct, speed, size, status, onDelete }: ProgressRowProps) {
   return (
     <Paper variant="outlined" sx={{ p: 1, mb: 0.5 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
         <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, mr: 1 }}>
           {name}
         </Typography>
-        {service && <Chip label={service} size="small" sx={{ fontSize: '0.65rem', height: 20 }} />}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          {service && <Chip label={service} size="small" sx={{ fontSize: '0.75rem', height: 20 }} />}
+          {onDelete && (
+            <IconButton
+              size="small"
+              onClick={onDelete}
+              sx={{ p: 0.25, color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+              title="Delete transfer"
+            >
+              <DeleteIcon sx={{ fontSize: 18 }} />
+            </IconButton>
+          )}
+        </Box>
       </Box>
       <LinearProgress
         variant="determinate"

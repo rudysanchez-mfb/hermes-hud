@@ -19,7 +19,7 @@ export default function SkillModal({ skillName, onClose }: SkillModalProps) {
   if (isLoading && !data) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
-        <div className="text-[13px] animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>
+        <div className="text-sm animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>
           {t('skills.loading')}
         </div>
       </div>
@@ -76,29 +76,29 @@ export default function SkillModal({ skillName, onClose }: SkillModalProps) {
           style={{ borderColor: 'var(--hud-border)' }}
         >
           <div className="flex items-center gap-3">
-            <span className="text-[14px] font-bold" style={{ color: 'var(--hud-primary)' }}>
+            <span className="text-sm font-bold" style={{ color: 'var(--hud-primary)' }}>
               {skill.name || skillName}
             </span>
             {skill.category && (
-              <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-text-dim)' }}>
+              <span className="text-xs px-1.5 py-0.5" style={{ background: 'var(--hud-bg-deep)', color: 'var(--hud-text-dim)' }}>
                 {skill.category}
               </span>
             )}
             {skill.is_custom && (
-              <span className="text-[11px] px-1.5 py-0.5" style={{ background: 'var(--hud-accent)', color: 'var(--hud-bg-deep)' }}>
+              <span className="text-xs px-1.5 py-0.5" style={{ background: 'var(--hud-accent)', color: 'var(--hud-bg-deep)' }}>
                 {t('dashboard.custom')}
               </span>
             )}
             {skill.version && (
-              <span className="text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>v{skill.version}</span>
+              <span className="text-xs" style={{ color: 'var(--hud-text-dim)' }}>v{skill.version}</span>
             )}
             {skill.author && (
-              <span className="text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>{skill.author}</span>
+              <span className="text-xs" style={{ color: 'var(--hud-text-dim)' }}>{skill.author}</span>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-[13px] px-2 py-0.5 cursor-pointer"
+            className="text-sm px-2 py-0.5 cursor-pointer"
             style={{ color: 'var(--hud-text-dim)' }}
           >
             ✕ {t('skills.close')}
@@ -106,7 +106,7 @@ export default function SkillModal({ skillName, onClose }: SkillModalProps) {
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-4 px-4 py-1.5 text-[12px] border-b" style={{ borderColor: 'var(--hud-border)' }}>
+        <div className="flex items-center gap-4 px-4 py-1.5 text-xs border-b" style={{ borderColor: 'var(--hud-border)' }}>
           <span style={{ color: 'var(--hud-text-dim)' }}>
             {t('skills.usage')}: <strong style={{ color: 'var(--hud-primary)' }}>{skill.usage_count || 0}</strong>
           </span>
@@ -127,7 +127,7 @@ export default function SkillModal({ skillName, onClose }: SkillModalProps) {
 
         {/* Triggers */}
         {skill.triggers?.length > 0 && (
-          <div className="px-4 py-1.5 text-[11px] border-b" style={{ borderColor: 'var(--hud-border)' }}>
+          <div className="px-4 py-1.5 text-xs border-b" style={{ borderColor: 'var(--hud-border)' }}>
             <div className="flex flex-wrap gap-1">
               {skill.triggers.map((t: string, i: number) => (
                 <span
@@ -149,7 +149,7 @@ export default function SkillModal({ skillName, onClose }: SkillModalProps) {
               <button
                 key={tab.key}
                 onClick={() => handleTabClick(tab.key)}
-                className="px-3 py-1.5 text-[12px] cursor-pointer whitespace-nowrap"
+                className="px-3 py-1.5 text-xs cursor-pointer whitespace-nowrap"
                 style={{
                   background: activeTab === tab.key ? 'var(--hud-bg-hover)' : 'transparent',
                   color: activeTab === tab.key ? 'var(--hud-primary)' : 'var(--hud-text-dim)',
@@ -165,10 +165,10 @@ export default function SkillModal({ skillName, onClose }: SkillModalProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto px-4 py-3">
           {activeTab !== 'content' && fileLoading ? (
-            <div className="text-[13px] animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>{t('skills.loading')}</div>
+            <div className="text-sm animate-pulse" style={{ color: 'var(--hud-text-dim)' }}>{t('skills.loading')}</div>
           ) : (
             <pre
-              className="text-[13px] whitespace-pre-wrap break-words"
+              className="text-sm whitespace-pre-wrap break-words"
               style={{
                 color: 'var(--hud-text)',
                 fontFamily: 'monospace',

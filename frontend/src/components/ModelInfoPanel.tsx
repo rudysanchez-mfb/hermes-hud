@@ -83,7 +83,7 @@ interface ModelAnalytics {
 function CapBadge({ active, label }: { active: boolean; label: string }) {
   return (
     <span
-      className="px-2 py-1 text-[11px] rounded"
+      className="px-2 py-1 text-xs rounded"
       style={{
         background: active ? 'var(--hud-primary)' : 'var(--hud-panel-alt, transparent)',
         color: active ? 'var(--hud-bg)' : 'var(--hud-text-dim)',
@@ -199,7 +199,7 @@ export default function ModelInfoPanel() {
   if (isLoading && !data) {
     return (
       <MuiPanel title={t('modelInfo.title')} className="col-span-full">
-        <div className="glow text-[13px] animate-pulse">{t('modelInfo.loading')}</div>
+        <div className="glow text-sm animate-pulse">{t('modelInfo.loading')}</div>
       </MuiPanel>
     )
   }
@@ -207,7 +207,7 @@ export default function ModelInfoPanel() {
   if (!data || !data.model) {
     return (
       <MuiPanel title={t('modelInfo.title')} className="col-span-full">
-        <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
+        <div className="text-sm" style={{ color: 'var(--hud-text-dim)' }}>
           {t('modelInfo.none')}
         </div>
       </MuiPanel>
@@ -216,7 +216,7 @@ export default function ModelInfoPanel() {
 
   const costRow = (label: string, value: number | null) =>
     value !== null ? (
-      <div className="flex justify-between py-0.5 text-[13px]">
+      <div className="flex justify-between py-0.5 text-sm">
         <span style={{ color: 'var(--hud-text-dim)' }}>{label}</span>
         <span>{formatMoney(value)} / 1M</span>
       </div>
@@ -225,7 +225,7 @@ export default function ModelInfoPanel() {
   return (
     <>
       <MuiPanel title={t('modelInfo.identity')}>
-        <div className="space-y-1 text-[13px]">
+        <div className="space-y-1 text-sm">
           <div className="flex justify-between">
             <span style={{ color: 'var(--hud-text-dim)' }}>{t('modelInfo.model')}</span>
             <span style={{ color: 'var(--hud-primary)' }} className="font-mono">{data.model}</span>
@@ -255,7 +255,7 @@ export default function ModelInfoPanel() {
         </div>
 
         <div className="mt-4">
-          <div className="text-[12px] mb-2" style={{ color: 'var(--hud-text-dim)' }}>
+          <div className="text-xs mb-2" style={{ color: 'var(--hud-text-dim)' }}>
             {t('modelInfo.capabilities')}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -265,7 +265,7 @@ export default function ModelInfoPanel() {
             <CapBadge active={data.supports_structured_output} label={t('modelInfo.structured')} />
           </div>
           {!data.found && (
-            <div className="mt-3 text-[11px]" style={{ color: 'var(--hud-text-dim)' }}>
+            <div className="mt-3 text-xs" style={{ color: 'var(--hud-text-dim)' }}>
               {t('modelInfo.notFound')}
             </div>
           )}
@@ -273,7 +273,7 @@ export default function ModelInfoPanel() {
       </MuiPanel>
 
       <MuiPanel title={t('modelInfo.limits')}>
-        <div className="text-[13px] space-y-1">
+        <div className="text-sm space-y-1">
           <div className="flex justify-between">
             <span style={{ color: 'var(--hud-text-dim)' }}>{t('modelInfo.effectiveContext')}</span>
             <span style={{ color: 'var(--hud-primary)' }}>{formatTokens(data.effective_context_length)}</span>
@@ -294,7 +294,7 @@ export default function ModelInfoPanel() {
 
         {(data.cost_input_per_m !== null || data.cost_output_per_m !== null) && (
           <div className="mt-4 pt-3" style={{ borderTop: '1px solid var(--hud-border)' }}>
-            <div className="text-[12px] mb-1" style={{ color: 'var(--hud-text-dim)' }}>
+            <div className="text-xs mb-1" style={{ color: 'var(--hud-text-dim)' }}>
               {t('modelInfo.cost')}
             </div>
             {costRow(t('modelInfo.costInput'), data.cost_input_per_m)}
@@ -306,7 +306,7 @@ export default function ModelInfoPanel() {
 
       <MuiPanel title={t('modelInfo.usage')} className="col-span-full">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <div className="text-[12px]" style={{ color: 'var(--hud-text-dim)' }}>
+          <div className="text-xs" style={{ color: 'var(--hud-text-dim)' }}>
             {periodDays === null ? t('modelInfo.periodAll') : t('modelInfo.periodDays').replace('{days}', String(periodDays))}
           </div>
           <div className="flex border" style={{ borderColor: 'var(--hud-border)' }}>
@@ -320,7 +320,7 @@ export default function ModelInfoPanel() {
                 <button
                   key={String(value)}
                   type="button"
-                  className="px-3 py-1.5 text-[12px]"
+                  className="px-3 py-1.5 text-xs"
                   style={{
                     background: active ? 'var(--hud-primary)' : 'transparent',
                     color: active ? 'var(--hud-bg)' : 'var(--hud-text)',
@@ -339,7 +339,7 @@ export default function ModelInfoPanel() {
         </div>
 
         {!analytics || analytics.models.length === 0 ? (
-          <div className="text-[13px]" style={{ color: 'var(--hud-text-dim)' }}>
+          <div className="text-sm" style={{ color: 'var(--hud-text-dim)' }}>
             {t('modelInfo.noUsage')}
           </div>
         ) : (
@@ -353,14 +353,14 @@ export default function ModelInfoPanel() {
                 [t('modelInfo.actual'), formatMoney(analytics.total_actual_cost_usd)],
               ].map(([label, value]) => (
                 <div key={String(label)} className="p-2 border" style={{ borderColor: 'var(--hud-border)' }}>
-                  <div className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--hud-text-dim)' }}>{label}</div>
-                  <div className="text-[15px] font-bold" style={{ color: 'var(--hud-primary)' }}>{value}</div>
+                  <div className="text-xs uppercase tracking-widest" style={{ color: 'var(--hud-text-dim)' }}>{label}</div>
+                  <div className="text-sm font-bold" style={{ color: 'var(--hud-primary)' }}>{value}</div>
                 </div>
               ))}
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-[12px]">
+              <table className="w-full text-xs">
                 <thead>
                   <tr style={{ color: 'var(--hud-text-dim)', borderBottom: '1px solid var(--hud-border)' }}>
                     {sortableHeader('model', t('modelInfo.model'), 'left')}
@@ -396,7 +396,7 @@ export default function ModelInfoPanel() {
                           <td className="py-2 pr-3 text-right">{model.sessions}</td>
                           <td className="py-2 pr-3 text-right">
                             <div>{formatTokens(model.total_tokens)}</div>
-                            <div className="text-[10px]" style={{ color: 'var(--hud-text-dim)' }}>
+                            <div className="text-xs" style={{ color: 'var(--hud-text-dim)' }}>
                               I {formatTokens(model.input_tokens)} / O {formatTokens(model.output_tokens)}
                               {(model.cache_read_tokens || model.cache_write_tokens || model.reasoning_tokens) ? (
                                 <>
@@ -414,7 +414,7 @@ export default function ModelInfoPanel() {
                           </td>
                           <td className="py-2 pr-3 text-right">
                             <div>A <Money value={model.actual_cost_usd} /></div>
-                            <div className="text-[10px]" style={{ color: 'var(--hud-text-dim)' }}>
+                            <div className="text-xs" style={{ color: 'var(--hud-text-dim)' }}>
                               E <Money value={model.estimated_cost_usd} />
                             </div>
                           </td>
@@ -429,11 +429,11 @@ export default function ModelInfoPanel() {
                         {expanded && (
                           <tr style={{ borderBottom: '1px solid var(--hud-border)', background: 'var(--hud-panel-alt, transparent)' }}>
                             <td colSpan={10} className="p-3">
-                              <div className="text-[11px] uppercase tracking-widest mb-2" style={{ color: 'var(--hud-text-dim)' }}>
+                              <div className="text-xs uppercase tracking-widest mb-2" style={{ color: 'var(--hud-text-dim)' }}>
                                 {t('modelInfo.sessionDrilldown')}
                               </div>
                               <div className="overflow-x-auto">
-                                <table className="w-full text-[11px]">
+                                <table className="w-full text-xs">
                                   <thead>
                                     <tr style={{ color: 'var(--hud-text-dim)', borderBottom: '1px solid var(--hud-border)' }}>
                                       <th className="text-left py-1 pr-3">{t('modelInfo.session')}</th>
@@ -451,7 +451,7 @@ export default function ModelInfoPanel() {
                                         <td className="py-1.5 pr-3">
                                           <div style={{ color: 'var(--hud-text)' }}>{session.title || session.id}</div>
                                           {session.title && (
-                                            <div className="font-mono text-[10px]" style={{ color: 'var(--hud-text-dim)' }}>{session.id}</div>
+                                            <div className="font-mono text-xs" style={{ color: 'var(--hud-text-dim)' }}>{session.id}</div>
                                           )}
                                         </td>
                                         <td className="py-1.5 pr-3" style={{ color: 'var(--hud-text-dim)' }}>{session.source || '—'}</td>

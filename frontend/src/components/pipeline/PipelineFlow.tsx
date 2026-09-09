@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import * as d3 from 'd3'
 import { Box, Typography, Paper } from '@mui/material'
 
@@ -6,6 +6,8 @@ interface PipelineFlowProps {
   services?: { name: string; active: number }[]
   transfers?: number
   alerts?: { severity: string; label: string }[]
+  /** Per-node data for hover popups: nodeId → { status, lines[] } */
+  nodeData?: Record<string, { status: string; lines: string[] }>
 }
 
 interface FlowNode {
@@ -20,6 +22,14 @@ interface FlowEdge {
   from: string
   to: string
   active: boolean
+}
+
+interface PopupState {
+  nodeId: string
+  status: string
+  lines: string[]
+  x: number
+  y: number
 }
 
 const NODES: FlowNode[] = [
@@ -65,8 +75,19 @@ function verticalCenterOffset(): number {
   return (VIEWBOX.height - contentHeight) / 2 - minY
 }
 
-export default function PipelineFlow({ services, transfers, alerts }: PipelineFlowProps) {
+const STATUS_COLORS: Record<string, string> = {
+  ok: 'var(--hud-success, #4caf50)',
+  warning: 'var(--hud-text, #d0d8e8)',
+  error: 'var(--hud-error, #ff5252)',
+}
+
+export default function PipelineFlow({ services, transfers, alerts, nodeData }: PipelineFlowProps) {
   const svgRef = useRef<SVGSVGElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [popup, setPopup] = useState<PopupState | null>(null)
+
+  // Clean up popup on unmount
+  const clearPopup = useCallback(() => setPopup(null), [])
 
   useEffect(() => {
     const svg = d3.select(svgRef.current)
@@ -93,6 +114,25 @@ export default function PipelineFlow({ services, transfers, alerts }: PipelineFl
     })
 
     const chart = svg.append('g').attr('transform', `translate(0, ${verticalCenterOffset()})`)
+
+    // Mouse handlers for popup
+    const handleMouseEnter = (event: MouseEvent, d: FlowNode) => {
+      const nd = nodeData?.[d.id]
+      if (!nd) return
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (!rect) return
+      setPopup({
+        nodeId: d.id,
+        status: nd.status,
+        lines: nd.lines,
+        x: event.clientX - rect.left + 12,
+        y: event.clientY - rect.top - 10,
+      })
+    }
+
+    const handleMouseLeave = () => {
+      clearPopup()
+    }
 
     // Draw edges — brighter for both active and inactive
     chart.selectAll<SVGLineElement, typeof edgeStates[number]>('line')
@@ -137,8 +177,9 @@ export default function PipelineFlow({ services, transfers, alerts }: PipelineFl
       .attr('d', 'M0,0 L6,3 L0,6 Z')
       .attr('fill', 'var(--hud-primary, #00d4ff)')
 
-    // Draw nodes — red for errored services
-    chart.selectAll<SVGCircleElement, FlowNode>('circle')
+    // Draw nodes — red for errored services, with hover events
+    const hasNodeData = nodeData && Object.keys(nodeData).length > 0
+    const circleSel = chart.selectAll<SVGCircleElement, FlowNode>('circle')
       .data(NODES)
       .enter()
       .append('circle')
@@ -148,9 +189,13 @@ export default function PipelineFlow({ services, transfers, alerts }: PipelineFl
       .attr('fill', d => errorServices.has(d.id) ? 'var(--hud-error, #ff5252)' : 'var(--hud-bg-panel, #141830)')
       .attr('stroke', d => errorServices.has(d.id) ? 'var(--hud-error, #ff5252)' : 'var(--hud-primary, #00d4ff)')
       .attr('stroke-width', d => errorServices.has(d.id) ? 2.5 : 1.5)
+      .style('cursor', hasNodeData ? 'pointer' : 'default')
+    if (hasNodeData) {
+      circleSel.on('mouseenter', handleMouseEnter).on('mouseleave', handleMouseLeave)
+    }
 
-    // Labels — brighter, bolder
-    chart.selectAll<SVGTextElement, FlowNode>('text')
+    // Labels — brighter, bolder, with hover events
+    const labelSel = chart.selectAll<SVGTextElement, FlowNode>('text')
       .data(NODES)
       .enter()
       .append('text')
@@ -168,17 +213,69 @@ export default function PipelineFlow({ services, transfers, alerts }: PipelineFl
       .attr('font-weight', d => errorServices.has(d.id) ? '700' : '400')
       .attr('font-family', 'Funnel Sans, sans-serif')
       .text(d => d.label)
+      .style('cursor', hasNodeData ? 'pointer' : 'default')
+    if (hasNodeData) {
+      labelSel.on('mouseenter', handleMouseEnter).on('mouseleave', handleMouseLeave)
+    }
 
-  }, [services, transfers, alerts])
+  }, [services, transfers, alerts, nodeData, clearPopup])
 
   return (
-    <Paper variant="outlined" sx={{ p: 1.5, mb: 2, borderColor: 'var(--hud-border-subtle)' }}>
+    <Paper
+      ref={containerRef}
+      variant="outlined"
+      sx={{ p: 1.5, mb: 2, borderColor: 'var(--hud-border-subtle)', position: 'relative' }}
+    >
       <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 0.5, letterSpacing: '0.1em' }}>
         Pipeline Flow
       </Typography>
       <Box>
         <svg ref={svgRef} viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
       </Box>
+
+      {/* Hover popup — positioned absolutely outside SVG */}
+      {popup && (
+        <Paper
+          elevation={8}
+          sx={{
+            position: 'absolute',
+            left: popup.x,
+            top: popup.y,
+            zIndex: 1300,
+            p: 1,
+            minWidth: 160,
+            maxWidth: 220,
+            backgroundColor: 'var(--hud-bg-panel, #141830)',
+            border: '1px solid var(--hud-border-subtle, rgba(255,255,255,0.08))',
+            pointerEvents: 'none',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: STATUS_COLORS[popup.status] || STATUS_COLORS.warning,
+                flexShrink: 0,
+              }}
+            />
+            <Typography variant="body2" sx={{ fontWeight: 700, fontSize: '0.8rem' }}>
+              {NODES.find(n => n.id === popup.nodeId)?.label || popup.nodeId}
+            </Typography>
+          </Box>
+          {popup.lines.map((line, i) => (
+            <Typography
+              key={i}
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: 'block', fontSize: '0.7rem', lineHeight: 1.3 }}
+            >
+              {line}
+            </Typography>
+          ))}
+        </Paper>
+      )}
     </Paper>
   )
 }
