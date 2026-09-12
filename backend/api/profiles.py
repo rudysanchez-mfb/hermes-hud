@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException
 from backend.collectors.profiles import collect_profiles
 from backend.collectors.utils import default_hermes_dir, load_yaml
 from .serialize import to_dict
+from ..async_utils import run_blocking
 
 router = APIRouter()
 
@@ -127,7 +128,7 @@ def _profile_edit_payload(profile_name: str, profile_dir: Path) -> dict[str, Any
 
 @router.get("/profiles")
 async def get_profiles():
-    return to_dict(collect_profiles())
+    return to_dict(await run_blocking(collect_profiles))
 
 
 @router.get("/profiles/options")

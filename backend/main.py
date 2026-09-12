@@ -57,6 +57,7 @@ from .api import (
     pipeline,
 )
 from .file_watcher import start_watcher, stop_watcher
+from .prewarm import start_prewarm
 from .websocket_manager import ws_manager
 
 logger = logging.getLogger(__name__)
@@ -71,6 +72,8 @@ async def lifespan(app: FastAPI):
     hermes_dir = os.environ.get("HERMES_HOME") or os.path.expanduser("~/.hermes")
     if not os.environ.get("HUD_NO_WATCH"):
         await start_watcher(hermes_dir)
+    if not os.environ.get("HUD_NO_PREWARM"):
+        start_prewarm(hermes_dir)
     logger.info(f"Hermes HUD started, watching {hermes_dir}")
 
     yield
@@ -197,6 +200,8 @@ def cli():
         host=args.host,
         port=args.port,
         reload=args.dev,
+        limit_concurrency=8,
+        timeout_keep_alive=30,
     )
 
 

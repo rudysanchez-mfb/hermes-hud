@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import logging
+import os
+import shutil
 import subprocess
 import time
 import urllib.request
@@ -10,6 +13,8 @@ import urllib.error
 from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 # ═══ TTL cache (30s) ═══
 _cache: Optional[tuple[float, "DebridPipelineState"]] = None
@@ -84,7 +89,22 @@ def _get(url: str, headers: dict | None = None, timeout: int = 10) -> dict:
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
+
+def _docker_available() -> bool:
+    """Cheap docker availability check — CLI present + a local socket (or DOCKER_HOST)."""
+    if shutil.which("docker") is None:
+        return False
+    if os.environ.get("DOCKER_HOST"):
+        return True
+    return os.path.exists("/var/run/docker.sock") or os.path.exists("/run/docker.sock")
+
+
 def _mount_ok(path: str) -> MountStatus:
+    # Cheap existence check first — if the mount point is absent (e.g. the
+    # cloud VPS has no /mnt/* debrid mounts), report unavailable without
+    # spawning a subprocess that could hang on a stale FUSE mount.
+    if not os.path.exists(path):
+        return MountStatus(path=path, ok=False, error="not present")
     try:
         # `timeout 5 ls` guards against hung network/FUSE mounts. Honor the
         # exit code: a missing or unreadable path returns non-zero, which must
@@ -254,26 +274,30 @@ def collect_debrid() -> DebridPipelineState:
             alerts.append(Alert("critical", f"Mount missing: {mp}"))
 
     # ── plex-debrid container ──
-    try:
-        pd = subprocess.run(
-            ["docker", "inspect", "plex-debrid", "--format",
-             "{{.State.Status}}"],
-            capture_output=True, text=True, timeout=5)
-        state.plex_debrid = pd.stdout.strip()
+    if not _docker_available():
+        logger.warning("plex-debrid unavailable (no docker daemon)")
+        alerts.append(Alert("warning", "plex-debrid unavailable (no docker daemon)"))
+    else:
+        try:
+            pd = subprocess.run(
+                ["docker", "inspect", "plex-debrid", "--format",
+                 "{{.State.Status}}"],
+                capture_output=True, text=True, timeout=5)
+            state.plex_debrid = pd.stdout.strip()
 
-        # Last cycle from logs
-        logs = subprocess.run(
-            ["docker", "logs", "plex-debrid", "--tail", "100"],
-            capture_output=True, text=True, timeout=5)
-        for line in reversed(logs.stdout.splitlines()):
-            if "Cache check" in line or "cache check" in line:
-                state.last_cycle = line.strip()[:120]
-                break
+            # Last cycle from logs
+            logs = subprocess.run(
+                ["docker", "logs", "plex-debrid", "--tail", "100"],
+                capture_output=True, text=True, timeout=5)
+            for line in reversed(logs.stdout.splitlines()):
+                if "Cache check" in line or "cache check" in line:
+                    state.last_cycle = line.strip()[:120]
+                    break
 
-        if pd.returncode != 0 or "running" not in pd.stdout:
-            alerts.append(Alert("critical", "plex-debrid container not running"))
-    except Exception as e:
-        alerts.append(Alert("warning", f"plex-debrid: {str(e)[:80]}"))
+            if pd.returncode != 0 or "running" not in pd.stdout:
+                alerts.append(Alert("critical", "plex-debrid container not running"))
+        except Exception as e:
+            alerts.append(Alert("warning", f"plex-debrid: {str(e)[:80]}"))
 
     state.alerts = alerts
     state.updated_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())

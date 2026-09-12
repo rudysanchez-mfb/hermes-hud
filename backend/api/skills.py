@@ -11,13 +11,14 @@ from fastapi.responses import PlainTextResponse
 from backend.collectors.skills import collect_skills
 from backend.collectors.utils import default_hermes_dir
 from .serialize import to_dict
+from ..async_utils import run_blocking
 
 router = APIRouter()
 
 
 @router.get("/skills")
 async def get_skills():
-    state = collect_skills()
+    state = await run_blocking(collect_skills)
     result = to_dict(state)
     # These are methods, not properties, so they're not auto-serialized
     result["by_category"] = to_dict(state.by_category())
@@ -30,7 +31,7 @@ async def get_skills():
 @router.get("/skills/{name}")
 async def get_skill_detail(name: str):
     """Get full detail for a single skill including content."""
-    state = collect_skills()
+    state = await run_blocking(collect_skills)
 
     # Find skill by name (case-insensitive exact match)
     skill = None
@@ -57,7 +58,7 @@ async def get_skill_detail(name: str):
 @router.get("/skills/{name}/file")
 async def get_skill_file(name: str, path: str = Query(..., description="Relative path within skill dir")):
     """Serve a linked file (references/, templates/, scripts/) for a skill."""
-    state = collect_skills()
+    state = await run_blocking(collect_skills)
 
     skill = None
     for s in state.skills:

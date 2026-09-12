@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Query
 from backend.collectors.utils import default_hermes_dir
 from backend.collectors.sessions import collect_sessions
 from .serialize import to_dict
+from ..async_utils import run_blocking
 
 router = APIRouter()
 
@@ -20,7 +21,7 @@ def _db_path() -> Path:
 
 @router.get("/sessions")
 async def get_sessions():
-    state = collect_sessions()
+    state = await run_blocking(collect_sessions)
     data = to_dict(state)
     data["by_source"] = state.by_source()   # keep the method; add key for the panel
     return data
@@ -29,6 +30,10 @@ async def get_sessions():
 @router.get("/sessions/search")
 async def search_sessions(q: str = Query(..., min_length=1)):
     """Search sessions by title or message content using FTS."""
+    return await run_blocking(_search_sessions_sync, q)
+
+
+def _search_sessions_sync(q: str) -> list[dict]:
     db = _db_path()
     if not db.exists():
         return []
@@ -118,6 +123,10 @@ async def search_sessions(q: str = Query(..., min_length=1)):
 @router.get("/sessions/{session_id}/messages")
 async def get_session_messages(session_id: str, limit: int = 200):
     """Fetch full message transcript for a session."""
+    return await run_blocking(_get_session_messages_sync, session_id, limit)
+
+
+def _get_session_messages_sync(session_id: str, limit: int = 200):
     db = _db_path()
     if not db.exists():
         raise HTTPException(status_code=404, detail="Database not found")

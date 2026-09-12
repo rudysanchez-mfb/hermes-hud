@@ -4,10 +4,11 @@ from fastapi import APIRouter
 
 from backend.collectors.providers import collect_providers
 from .serialize import to_dict
+from ..async_utils import run_blocking
 
 router = APIRouter()
 
 
 @router.get("/providers")
 async def get_providers():
-    return to_dict(collect_providers())
+    return to_dict(await run_blocking(collect_providers))

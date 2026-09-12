@@ -18,6 +18,39 @@ T = TypeVar("T")
 _cache_store: dict[str, tuple[Any, str, float]] = {}
 DEFAULT_TTL = 30  # seconds
 
+# Minimum TTL floor (seconds) for expensive collector keys. The heavy collectors
+# (patterns, sessions, profiles, skills, ...) read data that is refreshed only
+# once per hour by the sync cron, so a ~55-minute floor keeps their cache warm
+# across the whole refresh cycle without ever being more than one cycle stale.
+HEAVY_TTL_FLOOR = 3300  # ~55 min, just under the hourly rsync
+
+# Cache-key prefixes whose effective TTL is floored to HEAVY_TTL_FLOOR and which
+# are served stale-while-revalidate (see get_cached_or_compute / cache_with_mtime).
+HEAVY_KEY_PREFIXES: frozenset[str] = frozenset(
+    {
+        "patterns:",
+        "sessions:",
+        "profiles:",
+        "corrections:",
+        "state:",
+        "skills:",
+        "sudo:",
+        "agents:",
+    }
+)
+
+
+def _is_heavy_key(cache_key: str) -> bool:
+    """True if cache_key belongs to an expensive collector."""
+    return any(cache_key.startswith(p) for p in HEAVY_KEY_PREFIXES)
+
+
+def _effective_ttl(cache_key: str, ttl: int) -> int:
+    """Floor the TTL for expensive keys; cheap keys keep their short TTL."""
+    if _is_heavy_key(cache_key):
+        return max(ttl, HEAVY_TTL_FLOOR)
+    return ttl
+
 
 def _get_file_mtime(path: str | Path) -> float:
     """Get file modification time, return 0 if not exists."""
@@ -91,10 +124,16 @@ def cache_with_mtime(
             now = time.time()
 
             # Check cache
+            effective_ttl = _effective_ttl(cache_key, ttl)
             if cache_key in _cache_store:
                 result, stored_hash, timestamp = _cache_store[cache_key]
+                age = now - timestamp
                 # Valid if mtimes match AND ttl not expired
-                if stored_hash == current_mtime_hash and (now - timestamp) < ttl:
+                if stored_hash == current_mtime_hash and age < effective_ttl:
+                    return result
+                # Stale-while-revalidate: past TTL but mtime unchanged -> serve
+                # the cached value for heavy keys instead of recomputing.
+                if stored_hash == current_mtime_hash and _is_heavy_key(cache_key):
                     return result
 
             # Cache miss or invalid - compute and store
@@ -184,11 +223,18 @@ def get_cached_or_compute(
 
     current_mtime_hash = _compute_mtime_hash(*file_mtimes, *dir_mtimes)
     now = time.time()
+    effective_ttl = _effective_ttl(cache_key, ttl)
 
     # Check cache
     if cache_key in _cache_store:
         result, stored_hash, timestamp = _cache_store[cache_key]
-        if stored_hash == current_mtime_hash and (now - timestamp) < ttl:
+        age = now - timestamp
+        # Fresh: mtimes match AND within (possibly floored) TTL
+        if stored_hash == current_mtime_hash and age < effective_ttl:
+            return result
+        # Stale-while-revalidate: past TTL but mtime unchanged -> serve the
+        # cached value for heavy keys instead of recomputing.
+        if stored_hash == current_mtime_hash and _is_heavy_key(cache_key):
             return result
 
     # Cache miss - compute and store

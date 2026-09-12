@@ -1,7 +1,10 @@
 """Music pipeline collector — Lidarr, Transmission, Nicotine+, enricher"""
 
 import json
+import logging
 import os
+import shutil
+import socket
 import subprocess
 import time
 import urllib.request
@@ -9,6 +12,10 @@ import urllib.error
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
+
+from .utils import default_hermes_dir
+
+logger = logging.getLogger(__name__)
 
 # ═══ TTL cache (30s) ═══
 _cache: Optional[tuple[float, "MusicPipelineState"]] = None
@@ -113,6 +120,41 @@ def _transmission_rpc(method: str, args: dict) -> dict:
         return {}
 
 
+# ═══ Availability helpers ═══
+
+def _port_open(host: str, port: int, timeout: float = 1.0) -> bool:
+    """Cheap availability check — short-timeout TCP connect."""
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def _docker_available() -> bool:
+    """Cheap docker availability check — CLI present + a local socket (or DOCKER_HOST)."""
+    if shutil.which("docker") is None:
+        return False
+    if os.environ.get("DOCKER_HOST"):
+        return True
+    return os.path.exists("/var/run/docker.sock") or os.path.exists("/run/docker.sock")
+
+
+def _enricher_state_path() -> Optional[Path]:
+    """Resolve the music-enricher state file — newest-mtime wins.
+
+    Checks both the legacy agent-sandbox path and the hermes-dir-relative path
+    (via default_hermes_dir()), so this works on the media server AND the VPS
+    without hardcoding any home directory.
+    """
+    sandbox_path = Path("/home/rsanchez/.hermes/home/.hermes/state/music-enricher-state.json")
+    hermes_path = Path(default_hermes_dir()) / "state" / "music-enricher-state.json"
+    candidates = [p for p in (sandbox_path, hermes_path) if p.exists()]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda p: p.stat().st_mtime)
+
+
 # ═══ Main collector ═══
 
 def collect_music() -> MusicPipelineState:
@@ -124,79 +166,102 @@ def collect_music() -> MusicPipelineState:
     state = MusicPipelineState()
     alerts: list[Alert] = []
 
+    # Cheap availability checks (once per collect) — skip probes entirely when
+    # the resource is absent so we never hang or burn a long timeout.
+    lidarr_available = _port_open("localhost", 8686)
+    transmission_available = _port_open("localhost", 9091)
+    docker_available = _docker_available()
+
     # ── Lidarr queue ──
-    try:
-        queue = _get_json("http://localhost:8686/api/v1/queue?pageSize=50")
-        records = queue.get("records", [])
-        state.lidarr_queue = LidarrQueue(
-            active=len(records),
-            items=[{
-                "artist": r.get("artist", {}).get("artistName", "?"),
-                "title": r.get("title", "?"),
-                "status": r.get("status", "?"),
-                "size": r.get("size", 0),
-                "timeleft": r.get("timeleft", "?"),
-            } for r in records[:10]],
-        )
-    except Exception as e:
-        alerts.append(Alert("warning", f"Lidarr queue: {str(e)[:80]}"))
+    if not lidarr_available:
+        logger.warning("Lidarr unavailable (localhost:8686 not listening)")
+        alerts.append(Alert("warning", "Lidarr unavailable (localhost:8686 not listening)"))
+    else:
+        try:
+            queue = _get_json("http://localhost:8686/api/v1/queue?pageSize=50")
+            records = queue.get("records", [])
+            state.lidarr_queue = LidarrQueue(
+                active=len(records),
+                items=[{
+                    "artist": r.get("artist", {}).get("artistName", "?"),
+                    "title": r.get("title", "?"),
+                    "status": r.get("status", "?"),
+                    "size": r.get("size", 0),
+                    "timeleft": r.get("timeleft", "?"),
+                } for r in records[:10]],
+            )
+        except Exception as e:
+            alerts.append(Alert("warning", f"Lidarr queue: {str(e)[:80]}"))
 
     # ── Lidarr wanted ──
-    try:
-        wanted = _get_json("http://localhost:8686/api/v1/wanted/missing?pageSize=1&page=1")
-        state.lidarr_wanted = wanted.get("totalRecords", 0)
-        if state.lidarr_wanted > 50:
-            alerts.append(Alert("warning", f"Lidarr: {state.lidarr_wanted} wanted albums missing"))
-    except Exception:
-        pass
+    if lidarr_available:
+        try:
+            wanted = _get_json("http://localhost:8686/api/v1/wanted/missing?pageSize=1&page=1")
+            state.lidarr_wanted = wanted.get("totalRecords", 0)
+            if state.lidarr_wanted > 50:
+                alerts.append(Alert("warning", f"Lidarr: {state.lidarr_wanted} wanted albums missing"))
+        except Exception:
+            pass
 
     # ── Recent imports ──
-    try:
-        history = _get_json("http://localhost:8686/api/v1/history?pageSize=8&sortKey=date&sortDirection=descending&includeArtist=true")
-        state.recent_imports = [{
-            "artist": h.get("artist", {}).get("artistName", "?"),
-            "title": h.get("sourceTitle", "?"),
-            "date": h.get("date", "")[:10],
-            "quality": h.get("quality", {}).get("quality", {}).get("name", "?"),
-        } for h in history.get("records", [])[:8]]
-    except Exception:
-        pass
+    if lidarr_available:
+        try:
+            history = _get_json("http://localhost:8686/api/v1/history?pageSize=8&sortKey=date&sortDirection=descending&includeArtist=true")
+            state.recent_imports = [{
+                "artist": h.get("artist", {}).get("artistName", "?"),
+                "title": h.get("sourceTitle", "?"),
+                "date": h.get("date", "")[:10],
+                "quality": h.get("quality", {}).get("quality", {}).get("name", "?"),
+            } for h in history.get("records", [])[:8]]
+        except Exception:
+            pass
 
     # ── Transmission ──
-    try:
-        r = _transmission_rpc("torrent-get", {
-            "fields": ["name", "status", "percentDone", "downloadDir"]
-        })
-        all_torrents = r.get("arguments", {}).get("torrents", [])
-        # Filter to music-related dirs or all if small set
-        music_torrents = [
-            t for t in all_torrents
-            if "music" in (t.get("downloadDir", "")).lower()
-            or "lidarr" in (t.get("downloadDir", "")).lower()
-        ] or all_torrents[:20]  # fallback: show first 20
-        STATUS_MAP = {
-            0: "paused", 1: "queued", 2: "checking",
-            3: "queued", 4: "downloading", 5: "queued", 6: "seeding",
-        }
-        for t in music_torrents[:15]:
-            state.torrents.append(TorrentItem(
-                name=t.get("name", "?")[:80],
-                status=STATUS_MAP.get(t.get("status", 0), "?"),
-                progress=t.get("percentDone", 0) * 100,
-                download_dir=t.get("downloadDir", ""),
-            ))
-    except Exception as e:
-        alerts.append(Alert("warning", f"Transmission: {str(e)[:80]}"))
+    if not transmission_available:
+        logger.warning("Transmission unavailable (localhost:9091 not listening)")
+        alerts.append(Alert("warning", "Transmission unavailable (localhost:9091 not listening)"))
+    else:
+        try:
+            r = _transmission_rpc("torrent-get", {
+                "fields": ["name", "status", "percentDone", "downloadDir"]
+            })
+            all_torrents = r.get("arguments", {}).get("torrents", [])
+            # Filter to music-related dirs or all if small set
+            music_torrents = [
+                t for t in all_torrents
+                if "music" in (t.get("downloadDir", "")).lower()
+                or "lidarr" in (t.get("downloadDir", "")).lower()
+            ] or all_torrents[:20]  # fallback: show first 20
+            STATUS_MAP = {
+                0: "paused", 1: "queued", 2: "checking",
+                3: "queued", 4: "downloading", 5: "queued", 6: "seeding",
+            }
+            for t in music_torrents[:15]:
+                state.torrents.append(TorrentItem(
+                    name=t.get("name", "?")[:80],
+                    status=STATUS_MAP.get(t.get("status", 0), "?"),
+                    progress=t.get("percentDone", 0) * 100,
+                    download_dir=t.get("downloadDir", ""),
+                ))
+        except Exception as e:
+            alerts.append(Alert("warning", f"Transmission: {str(e)[:80]}"))
 
     # ── Nicotine+ ──
     try:
-        insp = subprocess.run(
-            ["docker", "inspect", "nicotine", "--format",
-             "{{.State.Status}} {{.State.Health.Status}}"],
-            capture_output=True, text=True, timeout=5)
-        parts = insp.stdout.strip().split()
-        state.nicotine.running = parts[0] == "running" if parts else False
-        state.nicotine.healthy = parts[1] == "healthy" if len(parts) > 1 else None
+        if docker_available:
+            insp = subprocess.run(
+                ["docker", "inspect", "nicotine", "--format",
+                 "{{.State.Status}} {{.State.Health.Status}}"],
+                capture_output=True, text=True, timeout=5)
+            parts = insp.stdout.strip().split()
+            state.nicotine.running = parts[0] == "running" if parts else False
+            state.nicotine.healthy = parts[1] == "healthy" if len(parts) > 1 else None
+
+            if not state.nicotine.running:
+                alerts.append(Alert("critical", "Nicotine+ container not running"))
+        else:
+            logger.warning("Nicotine+ unavailable (no docker daemon)")
+            alerts.append(Alert("warning", "Nicotine+ unavailable (no docker daemon)"))
 
         # Recent files
         dl_dir = "/mnt/media-ext1/soulseek/downloads"
@@ -213,19 +278,17 @@ def collect_music() -> MusicPipelineState:
                 if count > 50:
                     break
             state.nicotine.recent_files = count
-
-        if not state.nicotine.running:
-            alerts.append(Alert("critical", "Nicotine+ container not running"))
+        else:
+            logger.warning("Soulseek downloads unavailable: %s not present", dl_dir)
+            alerts.append(Alert("warning", f"Soulseek downloads unavailable: {dl_dir} not present"))
     except Exception as e:
         alerts.append(Alert("warning", f"Nicotine+: {str(e)[:80]}"))
 
     # ── Enricher ──
     try:
-        # Hermes agent runs in a sandboxed HOME; enricher writes there
-        sandbox_path = Path("/home/rsanchez/.hermes/home/.hermes/state/music-enricher-state.json")
-        real_path = Path.home() / ".hermes" / "state" / "music-enricher-state.json"
-        candidates = [p for p in (sandbox_path, real_path) if p.exists()]
-        enricher_path = max(candidates, key=lambda p: p.stat().st_mtime) if candidates else None
+        # Hermes agent runs in a sandboxed HOME; enricher writes there. Resolve
+        # via default_hermes_dir() so it works on the media server AND the VPS.
+        enricher_path = _enricher_state_path()
         if enricher_path and enricher_path.exists():
             data = json.loads(enricher_path.read_text(encoding="utf-8"))
             stats = data.get("stats", {})
@@ -316,10 +379,7 @@ def apply_enricher_run_filter(state: MusicPipelineState, run_date: Optional[str]
 
     if run_date == "all":
         # All-time aggregate — rebuild from flat processed
-        sandbox_path = Path("/home/rsanchez/.hermes/home/.hermes/state/music-enricher-state.json")
-        real_path = Path.home() / ".hermes" / "state" / "music-enricher-state.json"
-        candidates = [p for p in (sandbox_path, real_path) if p.exists()]
-        enricher_path = max(candidates, key=lambda p: p.stat().st_mtime) if candidates else None
+        enricher_path = _enricher_state_path()
         if enricher_path and enricher_path.exists():
             data = json.loads(enricher_path.read_text(encoding="utf-8"))
             processed = data.get("processed", {})
@@ -370,10 +430,8 @@ def apply_enricher_run_filter(state: MusicPipelineState, run_date: Optional[str]
         return state  # no match — keep current
 
     # Re-read the full run data from disk (run artists not kept in memory)
-    sandbox_path = Path("/home/rsanchez/.hermes/home/.hermes/state/music-enricher-state.json")
-    real_path = Path.home() / ".hermes" / "state" / "music-enricher-state.json"
-    enricher_path = sandbox_path if sandbox_path.exists() else real_path
-    if enricher_path.exists():
+    enricher_path = _enricher_state_path()
+    if enricher_path and enricher_path.exists():
         data = json.loads(enricher_path.read_text(encoding="utf-8"))
         for run in data.get("runs", []):
             if run.get("started_at", "").startswith(run_date):

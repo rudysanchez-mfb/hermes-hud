@@ -8,17 +8,18 @@ from backend.collectors.gateway import (
     read_action_status,
 )
 from .serialize import to_dict
+from ..async_utils import run_blocking
 
 router = APIRouter()
 
 
 @router.get("/gateway")
 async def get_gateway():
-    return to_dict(collect_gateway_status())
+    return to_dict(await run_blocking(collect_gateway_status))
 
 
 @router.get("/actions/{name}/status")
 async def action_status(name: str):
     if name not in ACTION_NAMES:
         raise HTTPException(status_code=404, detail=f"Unknown action: {name}")
-    return read_action_status(name)
+    return await run_blocking(read_action_status, name)

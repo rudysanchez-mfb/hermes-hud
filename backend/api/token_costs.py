@@ -9,6 +9,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 
 from backend.collectors.utils import default_hermes_dir
+from backend.async_utils import run_blocking
 
 try:
     router = APIRouter()
@@ -334,6 +335,15 @@ async def get_token_costs(
     if group_by not in {"day", "week", "month"}:
         raise HTTPException(status_code=400, detail=f"Invalid group_by '{group_by}'; expected day, week, or month")
 
+    return await run_blocking(_token_costs_impl, range, since, until, group_by)
+
+
+def _token_costs_impl(
+    range: str = "all",
+    since: str | None = None,
+    until: str | None = None,
+    group_by: str = "day",
+):
     hermes_dir = default_hermes_dir()
     db_path = str(Path(hermes_dir) / "state.db")
 
