@@ -1,0 +1,43 @@
+#!/bin/bash
+# Hybrid ~/.hermes sync: consistent state.db snapshot + local hot dirs + symlinks
+set -e
+MNT=/root/.hermes-mnt
+HYB=/root/.hermes
+SSH='ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no'
+HOST=rsanchez@100.109.101.96
+SRC=$HOST:/home/rsanchez/.hermes
+mkdir -p $HYB /root/state
+# 1. hot dirs as local replicas
+for d in skills cron memories corrections plugins profiles; do
+  [ -L $HYB/$d ] && rm $HYB/$d
+  rsync -a --delete -e "$SSH" $SRC/$d/ $HYB/$d/ 2>/dev/null || true
+done
+# 2. hot files as local replicas
+for f in config.yaml auth.json MEMORY.md USER.md SOUL.md .env; do
+  [ -L $HYB/$f ] && rm $HYB/$f
+  rsync -a -e "$SSH" $SRC/$f $HYB/$f 2>/dev/null || true
+done
+# 3. consistent state.db snapshot on the server (sqlite backup API, gentle)
+$SSH $HOST "mkdir -p /home/rsanchez/.hermes/cache && nice -n 19 ionice -c3 python3 -c \"import sqlite3; s=sqlite3.connect('file:/home/rsanchez/.hermes/state.db?mode=ro',uri=True); d=sqlite3.connect('/home/rsanchez/.hermes/cache/state-hud-snapshot.db'); s.backup(d); d.close(); s.close()\""
+# 4. delta-transfer the snapshot, atomic swap
+rsync -a --inplace -e "$SSH" $SRC/cache/state-hud-snapshot.db /root/state/state.db.tmp
+cp /root/state/state.db.tmp $HYB/state.db.new && mv -f $HYB/state.db.new $HYB/state.db
+# 5. local read-optimizing indexes (local replica only, never the origin)
+/opt/hermes-hudui/venv/bin/python3 -c "
+import sqlite3
+c = sqlite3.connect('/root/.hermes/state.db')
+for sql in ['CREATE INDEX IF NOT EXISTS idx_hud_parent ON sessions(parent_session_id)',
+            'CREATE INDEX IF NOT EXISTS idx_hud_started ON sessions(started_at)',
+            'CREATE INDEX IF NOT EXISTS idx_hud_msg_session ON messages(session_id)',
+            'CREATE INDEX IF NOT EXISTS idx_messages_session_ts ON messages(session_id, timestamp)',
+            'CREATE INDEX IF NOT EXISTS idx_messages_user_session_ts ON messages(session_id, timestamp, content) WHERE role = 'user'']:
+    try: c.execute(sql)
+    except Exception as e: print('idx skip:', e)
+c.commit(); c.close()"
+# 6. symlinks for the rest
+for f in $MNT/* $MNT/.[!.]*; do
+  b=$(basename "$f")
+  case "$b" in state.db*|music-pipeline|state-snapshots|home|backups|audio_cache|hermes-agent|venvs|cache|skills|cron|memories|corrections|plugins|profiles|config.yaml|auth.json|MEMORY.md|USER.md|SOUL.md|.env) continue;; esac
+  [ -e "$HYB/$b" ] || ln -s "$f" "$HYB/$b"
+done
+echo "sync done $(date)"
