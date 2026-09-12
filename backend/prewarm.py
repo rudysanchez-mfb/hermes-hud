@@ -24,13 +24,21 @@ def _resolve_hermes_dir() -> str:
 def _warm_all(hermes_dir: str | None) -> None:
     """Populate the heavy collector caches. Never raises.
 
-    Only the collectors that actually write to the module cache are warmed
-    (patterns, sessions, profiles, skills). Other collectors (corrections,
-    sudo, agents) recompute on every call regardless of the cache, so warming
-    them would burn background CPU for zero benefit.
+    Warms every collector that writes to the module cache: patterns,
+    sessions, profiles, skills, corrections, sudo, agents.
     """
     try:
-        from .collectors import patterns, profiles, sessions, skills
+        from .collectors import (
+            agents,
+            corrections,
+            patterns,
+            profiles,
+            sessions,
+            skills,
+            sudo,
+        )
+        from .collectors import collect as collect_mod
+        from .api import token_costs as token_costs_mod
     except Exception:
         logger.exception("Prewarm: failed to import collectors")
         return
@@ -40,7 +48,17 @@ def _warm_all(hermes_dir: str | None) -> None:
         sessions.collect_sessions,
         profiles.collect_profiles,
         skills.collect_skills,
+        corrections.collect_corrections,
+        sudo.collect_sudo,
+        agents.collect_agents,
+        collect_mod.collect_all,
     )
+
+    # token_costs takes args, warm the dashboard's exact calls separately
+    try:
+        token_costs_mod._cached_token_costs("all", None, None, "day")
+    except Exception:
+        logger.exception("Prewarm failed for token_costs")
 
     for collect in collectors:
         try:

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from .utils import default_hermes_dir, safe_get
+from ..cache import get_cached_or_compute
 
 
 @dataclass
@@ -162,8 +163,18 @@ def _extract_session_corrections(hermes_dir: str) -> list[Correction]:
 
 
 def collect_corrections(hermes_dir: str | None = None) -> CorrectionsState:
-    """Collect all correction events."""
+    """Collect all correction events (cached)."""
     hermes_dir = default_hermes_dir(hermes_dir)
+    db_path = Path(hermes_dir) / "state.db"
+    return get_cached_or_compute(
+        cache_key=f"corrections:{hermes_dir}",
+        compute_fn=lambda: _do_collect_corrections(hermes_dir),
+        file_paths=[db_path] if db_path.exists() else [],
+        ttl=60,
+    )
+
+
+def _do_collect_corrections(hermes_dir: str) -> CorrectionsState:
 
     corrections = []
     corrections.extend(_extract_memory_corrections(hermes_dir))

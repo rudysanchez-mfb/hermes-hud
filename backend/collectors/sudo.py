@@ -12,6 +12,7 @@ from typing import Optional
 
 from .models import SudoCommand, SudoConfig, SudoState, SudoStats
 from .utils import default_hermes_dir, load_yaml, safe_get
+from ..cache import get_cached_or_compute
 
 _SUDO_RE = re.compile(r"(sudo\s+\S+(?:\s+\S+){0,5})")
 _PASSWORD_ERR = re.compile(r"sudo:.*terminal.*required|sudo:.*password", re.IGNORECASE)
@@ -174,8 +175,18 @@ def _compute_stats(commands: list[SudoCommand]) -> SudoStats:
 
 
 def collect_sudo(hermes_dir: str | None = None) -> SudoState:
-    """Collect sudo configuration, usage statistics, and command history."""
+    """Collect sudo configuration, usage statistics, and command history (cached)."""
     hermes_dir = default_hermes_dir(hermes_dir)
+    db_path = Path(hermes_dir) / "state.db"
+    return get_cached_or_compute(
+        cache_key=f"sudo:{hermes_dir}",
+        compute_fn=lambda: _do_collect_sudo(hermes_dir),
+        file_paths=[db_path] if db_path.exists() else [],
+        ttl=60,
+    )
+
+
+def _do_collect_sudo(hermes_dir: str) -> SudoState:
 
     sudo_config = _collect_config(hermes_dir)
     db_commands = _collect_commands(hermes_dir)

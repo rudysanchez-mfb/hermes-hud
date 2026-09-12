@@ -11,9 +11,21 @@ from .skills import collect_skills
 from .sessions import collect_sessions
 from .config import collect_config
 from .timeline import build_timeline
+from .utils import default_hermes_dir
+from ..cache import get_cached_or_compute
 
 
 def collect_all(hermes_dir: str | None = None) -> HUDState:
+    """Collect all data sources into a unified HUD state (cached)."""
+    resolved = default_hermes_dir(hermes_dir)
+    return get_cached_or_compute(
+        cache_key=f"state:{resolved}",
+        compute_fn=lambda: _do_collect_all(resolved),
+        ttl=60,
+    )
+
+
+def _do_collect_all(hermes_dir: str | None = None) -> HUDState:
     """Collect all data sources into a unified HUD state."""
     # Config must run first so memory limits are known before parsing memory files
     config = collect_config(hermes_dir)

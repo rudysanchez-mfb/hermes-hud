@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Optional
 
 from .utils import parse_timestamp, default_hermes_dir, safe_get
+from ..cache import get_cached_or_compute
 
 
 @dataclass
@@ -534,9 +535,19 @@ def _get_recent_sessions(hermes_dir: str, limit: int = 10) -> list[RecentSession
 
 
 def collect_agents(hermes_dir: str | None = None) -> AgentsState:
-    """Collect all agent data."""
+    """Collect all agent data (cached)."""
     if hermes_dir is None:
         hermes_dir = default_hermes_dir(hermes_dir)
+    db_path = Path(hermes_dir) / "state.db"
+    return get_cached_or_compute(
+        cache_key=f"agents:{hermes_dir}",
+        compute_fn=lambda: _do_collect_agents(hermes_dir),
+        file_paths=[db_path] if db_path.exists() else [],
+        ttl=60,
+    )
+
+
+def _do_collect_agents(hermes_dir: str) -> AgentsState:
 
     # Scan for agent processes
     processes = []

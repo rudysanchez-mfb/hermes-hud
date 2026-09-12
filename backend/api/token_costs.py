@@ -335,7 +335,25 @@ async def get_token_costs(
     if group_by not in {"day", "week", "month"}:
         raise HTTPException(status_code=400, detail=f"Invalid group_by '{group_by}'; expected day, week, or month")
 
-    return await run_blocking(_token_costs_impl, range, since, until, group_by)
+    return await run_blocking(_cached_token_costs, range, since, until, group_by)
+
+
+def _cached_token_costs(
+    range: str = "all",
+    since: str | None = None,
+    until: str | None = None,
+    group_by: str = "day",
+):
+    from ..cache import get_cached_or_compute
+
+    hermes_dir = default_hermes_dir()
+    db_path = Path(hermes_dir) / "state.db"
+    return get_cached_or_compute(
+        cache_key=f"state:token_costs:{range}:{since}:{until}:{group_by}",
+        compute_fn=lambda: _token_costs_impl(range, since, until, group_by),
+        file_paths=[db_path] if db_path.exists() else [],
+        ttl=60,
+    )
 
 
 def _token_costs_impl(
