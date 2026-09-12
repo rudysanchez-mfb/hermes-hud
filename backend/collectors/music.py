@@ -78,9 +78,14 @@ def _get_lidarr_key() -> str:
     if LIDARR_KEY:
         return LIDARR_KEY
     try:
-        r = subprocess.run(
-            ["docker", "exec", "lidarr", "cat", "/config/config.xml"],
-            capture_output=True, text=True, timeout=5)
+        if _docker_available():
+            r = subprocess.run(
+                ["docker", "exec", "lidarr", "cat", "/config/config.xml"],
+                capture_output=True, text=True, timeout=5)
+        elif _remote_available():
+            r = _remote_run("docker exec lidarr cat /config/config.xml")
+        else:
+            return LIDARR_KEY
         import re
         m = re.search(r'<ApiKey>([^<]+)', r.stdout)
         if m:
@@ -95,9 +100,9 @@ def _get_json(url: str, timeout: int = 10) -> dict:
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return json.loads(r.read())
 
-def _transmission_rpc(method: str, args: dict) -> dict:
+def _transmission_rpc(method: str, args: dict, host: str = "localhost") -> dict:
     """Transmission RPC with CSRF token dance."""
-    url = "http://localhost:9091/transmission/rpc"
+    url = f"http://{host}:9091/transmission/rpc"
     session_id: str | None = None
 
     # First try — get session ID from 409
@@ -129,6 +134,33 @@ def _port_open(host: str, port: int, timeout: float = 1.0) -> bool:
             return True
     except OSError:
         return False
+
+
+MEDIA_HOST = os.environ.get("HUD_MEDIA_HOST", "100.109.101.96")
+
+_REMOTE_SSH = [
+    "ssh", "-i", "/root/.ssh/id_rsa",
+    "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes",
+    "-o", "ConnectTimeout=8", f"rsanchez@{MEDIA_HOST}",
+]
+
+
+def _remote_available() -> bool:
+    return Path("/root/.ssh/id_rsa").exists()
+
+
+def _remote_run(cmd: str, timeout: int = 12) -> subprocess.CompletedProcess:
+    return subprocess.run(_REMOTE_SSH + [cmd],
+                          capture_output=True, text=True, timeout=timeout)
+
+
+def _resolve_host(port: int) -> str | None:
+    """localhost when the service is local, else the media server over tailnet."""
+    if _port_open("localhost", port):
+        return "localhost"
+    if _port_open(MEDIA_HOST, port, timeout=2.0):
+        return MEDIA_HOST
+    return None
 
 
 def _docker_available() -> bool:
@@ -168,9 +200,12 @@ def collect_music() -> MusicPipelineState:
 
     # Cheap availability checks (once per collect) — skip probes entirely when
     # the resource is absent so we never hang or burn a long timeout.
-    lidarr_available = _port_open("localhost", 8686)
-    transmission_available = _port_open("localhost", 9091)
+    lidarr_host = _resolve_host(8686)
+    transmission_host = _resolve_host(9091)
+    lidarr_available = lidarr_host is not None
+    transmission_available = transmission_host is not None
     docker_available = _docker_available()
+    docker_reachable = docker_available or _remote_available()
 
     # ── Lidarr queue ──
     if not lidarr_available:
@@ -178,7 +213,7 @@ def collect_music() -> MusicPipelineState:
         alerts.append(Alert("warning", "Lidarr unavailable (localhost:8686 not listening)"))
     else:
         try:
-            queue = _get_json("http://localhost:8686/api/v1/queue?pageSize=50")
+            queue = _get_json(f"http://{lidarr_host}:8686/api/v1/queue?pageSize=50")
             records = queue.get("records", [])
             state.lidarr_queue = LidarrQueue(
                 active=len(records),
@@ -196,7 +231,7 @@ def collect_music() -> MusicPipelineState:
     # ── Lidarr wanted ──
     if lidarr_available:
         try:
-            wanted = _get_json("http://localhost:8686/api/v1/wanted/missing?pageSize=1&page=1")
+            wanted = _get_json(f"http://{lidarr_host}:8686/api/v1/wanted/missing?pageSize=1&page=1")
             state.lidarr_wanted = wanted.get("totalRecords", 0)
             if state.lidarr_wanted > 50:
                 alerts.append(Alert("warning", f"Lidarr: {state.lidarr_wanted} wanted albums missing"))
@@ -206,7 +241,7 @@ def collect_music() -> MusicPipelineState:
     # ── Recent imports ──
     if lidarr_available:
         try:
-            history = _get_json("http://localhost:8686/api/v1/history?pageSize=8&sortKey=date&sortDirection=descending&includeArtist=true")
+            history = _get_json(f"http://{lidarr_host}:8686/api/v1/history?pageSize=8&sortKey=date&sortDirection=descending&includeArtist=true")
             state.recent_imports = [{
                 "artist": h.get("artist", {}).get("artistName", "?"),
                 "title": h.get("sourceTitle", "?"),
@@ -224,7 +259,7 @@ def collect_music() -> MusicPipelineState:
         try:
             r = _transmission_rpc("torrent-get", {
                 "fields": ["name", "status", "percentDone", "downloadDir"]
-            })
+            }, host=transmission_host)
             all_torrents = r.get("arguments", {}).get("torrents", [])
             # Filter to music-related dirs or all if small set
             music_torrents = [
@@ -248,11 +283,16 @@ def collect_music() -> MusicPipelineState:
 
     # ── Nicotine+ ──
     try:
-        if docker_available:
-            insp = subprocess.run(
-                ["docker", "inspect", "nicotine", "--format",
-                 "{{.State.Status}} {{.State.Health.Status}}"],
-                capture_output=True, text=True, timeout=5)
+        if docker_reachable:
+            if docker_available:
+                insp = subprocess.run(
+                    ["docker", "inspect", "nicotine", "--format",
+                     "{{.State.Status}} {{.State.Health.Status}}"],
+                    capture_output=True, text=True, timeout=5)
+            else:
+                insp = _remote_run(
+                    "docker inspect nicotine --format "
+                    "'{{.State.Status}} {{.State.Health.Status}}'")
             parts = insp.stdout.strip().split()
             state.nicotine.running = parts[0] == "running" if parts else False
             state.nicotine.healthy = parts[1] == "healthy" if len(parts) > 1 else None
@@ -278,6 +318,13 @@ def collect_music() -> MusicPipelineState:
                 if count > 50:
                     break
             state.nicotine.recent_files = count
+        elif _remote_available():
+            res = _remote_run(
+                f"find {dl_dir} -type f -mmin -30 2>/dev/null | head -51 | wc -l")
+            try:
+                state.nicotine.recent_files = int(res.stdout.strip() or 0)
+            except ValueError:
+                state.nicotine.recent_files = 0
         else:
             logger.warning("Soulseek downloads unavailable: %s not present", dl_dir)
             alerts.append(Alert("warning", f"Soulseek downloads unavailable: {dl_dir} not present"))

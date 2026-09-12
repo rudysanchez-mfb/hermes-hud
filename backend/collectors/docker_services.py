@@ -52,10 +52,18 @@ def _docker_available() -> bool:
     return os.path.exists("/var/run/docker.sock") or os.path.exists("/run/docker.sock")
 
 
+_MEDIA_HOST = os.environ.get("HUD_MEDIA_HOST", "100.109.101.96")
+_REMOTE_SSH = [
+    "ssh", "-i", "/root/.ssh/id_rsa",
+    "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes",
+    "-o", "ConnectTimeout=8", f"rsanchez@{_MEDIA_HOST}",
+]
+
+
 def collect_docker_services() -> DockerServicesState:
-    if not _docker_available():
-        # No docker on this host (cloud VPS) — return an explicit empty state
-        # instead of probing a missing CLI/socket.
+    local = _docker_available()
+    remote = os.path.exists("/root/.ssh/id_rsa")
+    if not local and not remote:
         logger.warning("docker unavailable (no docker CLI or socket)")
         return DockerServicesState(
             containers=[],
@@ -63,9 +71,14 @@ def collect_docker_services() -> DockerServicesState:
             error="docker unavailable (no docker CLI or socket)",
         )
     try:
-        out = subprocess.run(
-            ["docker", "ps", "-a", "--format", "{{json .}}"],
-            capture_output=True, text=True, timeout=10)
+        if local:
+            out = subprocess.run(
+                ["docker", "ps", "-a", "--format", "{{json .}}"],
+                capture_output=True, text=True, timeout=10)
+        else:
+            out = subprocess.run(
+                _REMOTE_SSH + ["docker ps -a --format '{{json .}}'"],
+                capture_output=True, text=True, timeout=20)
         if out.returncode != 0:
             return DockerServicesState(error=out.stderr.strip()[:200])
 

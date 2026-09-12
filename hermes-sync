@@ -30,7 +30,7 @@ for sql in ['CREATE INDEX IF NOT EXISTS idx_hud_parent ON sessions(parent_sessio
             'CREATE INDEX IF NOT EXISTS idx_hud_started ON sessions(started_at)',
             'CREATE INDEX IF NOT EXISTS idx_hud_msg_session ON messages(session_id)',
             'CREATE INDEX IF NOT EXISTS idx_messages_session_ts ON messages(session_id, timestamp)',
-            'CREATE INDEX IF NOT EXISTS idx_messages_user_session_ts ON messages(session_id, timestamp, content) WHERE role = 'user'']:
+            'CREATE INDEX IF NOT EXISTS idx_messages_user_session_ts ON messages(session_id, timestamp, content) WHERE role = \x27user\x27']:
     try: c.execute(sql)
     except Exception as e: print('idx skip:', e)
 c.commit(); c.close()"
@@ -40,4 +40,6 @@ for f in $MNT/* $MNT/.[!.]*; do
   case "$b" in state.db*|music-pipeline|state-snapshots|home|backups|audio_cache|hermes-agent|venvs|cache|skills|cron|memories|corrections|plugins|profiles|config.yaml|auth.json|MEMORY.md|USER.md|SOUL.md|.env) continue;; esac
   [ -e "$HYB/$b" ] || ln -s "$f" "$HYB/$b"
 done
+# 7. plex-debrid settings for the HUD debrid collector
+$SSH $HOST "cat /opt/media-stack/plex-debrid/config/settings.json" > /root/state/plex-debrid-settings.json.tmp && mv -f /root/state/plex-debrid-settings.json.tmp /root/state/plex-debrid-settings.json || true
 echo "sync done $(date)"

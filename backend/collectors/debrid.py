@@ -66,15 +66,38 @@ class DebridPipelineState:
 
 # ═══ Helpers ═══
 
+_SETTINGS_PATHS = (
+    Path("/opt/media-stack/plex-debrid/config/settings.json"),   # media server
+    Path("/root/state/plex-debrid-settings.json"),               # VPS synced copy
+)
+
+_REMOTE_SSH = [
+    "ssh", "-i", "/root/.ssh/id_rsa",
+    "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes",
+    "-o", "ConnectTimeout=8", "rsanchez@100.109.101.96",
+]
+
+
+def _remote_available() -> bool:
+    return Path("/root/.ssh/id_rsa").exists()
+
+
+def _remote_run(cmd: str, timeout: int = 12) -> subprocess.CompletedProcess:
+    return subprocess.run(_REMOTE_SSH + [cmd],
+                          capture_output=True, text=True, timeout=timeout)
+
+
 def _load_keys() -> dict[str, str]:
-    settings_path = Path("/opt/media-stack/plex-debrid/config/settings.json")
     empty = {"premiumize": "", "torbox": "", "debridlink": ""}
-    try:
-        with open(settings_path) as f:
-            s = json.load(f)
-    except (FileNotFoundError, NotADirectoryError, PermissionError, json.JSONDecodeError, OSError):
-        # Media-server-only config; absent when running off-server. Degrade
-        # gracefully (empty keys skip the debrid API calls) instead of crashing.
+    s = None
+    for settings_path in _SETTINGS_PATHS:
+        try:
+            with open(settings_path) as f:
+                s = json.load(f)
+            break
+        except (FileNotFoundError, NotADirectoryError, PermissionError, json.JSONDecodeError, OSError):
+            continue
+    if s is None:
         return empty
     return {
         "premiumize": s.get("Premiumize API Key", ""),
@@ -266,15 +289,48 @@ def collect_debrid() -> DebridPipelineState:
         alerts.append(Alert("warning", f"DebridLink API: {str(e)[:80]}"))
         state.services.append(DebridService(name="DebridLink", errors=[str(e)[:80]]))
 
-    # ── Mounts ──
-    for mp in ["/mnt/premiumize", "/mnt/debridlink", "/mnt/media_pool"]:
-        ms = _mount_ok(mp)
-        state.mounts.append(ms)
-        if not ms.ok:
-            alerts.append(Alert("critical", f"Mount missing: {mp}"))
+    # ── Mounts (local when present, else checked on the media server over SSH) ──
+    _mps = ["/mnt/premiumize", "/mnt/debridlink", "/mnt/media_pool"]
+    if any(os.path.exists(mp) for mp in _mps):
+        for mp in _mps:
+            ms = _mount_ok(mp)
+            state.mounts.append(ms)
+            if not ms.ok:
+                alerts.append(Alert("critical", f"Mount missing: {mp}"))
+    elif _remote_available():
+        try:
+            probe = " ; ".join(
+                f"timeout 5 ls {mp} >/dev/null 2>&1 && echo {mp}=OK || echo {mp}=FAIL"
+                for mp in _mps
+            )
+            res = _remote_run(probe, timeout=25)
+            seen = dict(l.split("=", 1) for l in res.stdout.split() if "=" in l)
+            for mp in _mps:
+                ok = seen.get(mp) == "OK"
+                state.mounts.append(MountStatus(path=mp, ok=ok,
+                                                error=None if ok else "remote check failed"))
+                if not ok:
+                    alerts.append(Alert("critical", f"Mount missing: {mp}"))
+        except Exception as e:
+            alerts.append(Alert("warning", f"remote mount check: {str(e)[:80]}"))
+    else:
+        alerts.append(Alert("warning", "mounts unavailable (no local /mnt and no SSH key)"))
 
     # ── plex-debrid container ──
-    if not _docker_available():
+    if not _docker_available() and _remote_available():
+        try:
+            pd = _remote_run("docker inspect plex-debrid --format '{{.State.Status}}'")
+            state.plex_debrid = pd.stdout.strip()
+            logs = _remote_run("docker logs plex-debrid --tail 100 2>&1")
+            for line in reversed(logs.stdout.splitlines()):
+                if "Cache check" in line or "cache check" in line:
+                    state.last_cycle = line.strip()[:120]
+                    break
+            if pd.returncode != 0 or "running" not in pd.stdout:
+                alerts.append(Alert("critical", "plex-debrid container not running"))
+        except Exception as e:
+            alerts.append(Alert("warning", f"plex-debrid (remote): {str(e)[:80]}"))
+    elif not _docker_available():
         logger.warning("plex-debrid unavailable (no docker daemon)")
         alerts.append(Alert("warning", "plex-debrid unavailable (no docker daemon)"))
     else:
