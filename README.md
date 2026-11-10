@@ -35,19 +35,23 @@ The interface consolidates 18 legacy panels into 11 streamlined surfaces with re
 
 ---
 
-## 📸 Screenshots
+## 📸 Real-Time Screenshots
 
-| Executive Dashboard | Costs & Model Analytics |
+| Executive Dashboard | Costs & Subscriptions v2 |
 |:---:|:---:|
-| ![Executive Dashboard](assets/dashboard-executive.png) | ![Model Analytics](assets/model-analytics.png) |
+| ![Executive Dashboard](assets/dashboard-executive.png) | ![Costs v2](assets/dashboard-costs.png) |
 
-| Gateway Managed Tools | Plugin Management |
+| Debrid Pipeline (D3 Flow) | Music Pipeline (Lidarr / Soulseek) |
 |:---:|:---:|
-| ![Gateway Tools](assets/gateway-tools.png) | ![Plugin Hub](assets/plugin-hub.png) |
+| ![Debrid Pipeline](assets/debrid-pipeline.png) | ![Music Pipeline](assets/music-pipeline.png) |
 
-| Replay & Safe Share | Responsive Navigation |
+| Services & Container Grid | Cron Scheduler (65 Active Jobs) |
 |:---:|:---:|
-| ![Hermes Replay](assets/replay-tab.png) | ![Responsive Tabs](assets/responsive-tabs.png) |
+| ![Services & Health](assets/services-health.png) | ![Cron Scheduler](assets/cron-scheduler.png) |
+
+| Sessions & Replay | Skills Catalog & Usage Metrics |
+|:---:|:---:|
+| ![Sessions](assets/sessions-replay.png) | ![Skills Catalog](assets/skills-catalog.png) |
 
 ---
 
