@@ -1,109 +1,125 @@
-# ☤ Hermes HUD — Web UI
+# ☤ Hermes HUD — Web Consciousness Monitor
 
-A browser-based consciousness monitor for [Hermes](https://github.com/nousresearch/hermes-agent), the AI agent with persistent memory.
+A browser-based consciousness monitor, telemetry console, and pipeline observer for [Hermes Agent](https://github.com/nousresearch/hermes-agent).
 
-Same data, same soul, same dashboard that made the [TUI version](https://github.com/joeynyc/hermes-hud) popular — now in your browser.
+[![Release](https://img.shields.io/badge/Version-v0.12.0-blue?style=flat-square)](CHANGELOG.md)
+[![Frontend](https://img.shields.io/badge/Frontend-React%2019%20%2F%20MUI%20v9-3178C6?style=flat-square&logo=react)](frontend/)
+[![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi)](backend/)
+[![License](https://img.shields.io/badge/License-MIT-orange?style=flat-square)](LICENSE)
 
 ![Executive Dashboard](assets/dashboard-executive.png)
 
-![Gateway Managed Tools](assets/gateway-tools.png)
+Hermes HUD provides deep, real-time observability into an active Hermes agent's memory, sessions, cost analytics, automated cron jobs, and background pipeline infrastructure.
 
-![Model Analytics](assets/model-analytics.png)
+Originally developed as a local dashboard, this version reflects the **v0.10–v0.12 architecture**: consolidated into an 11-tab Material-UI v9 single-page application with read-only v2 security, hybrid SQLite data replication, and real-time pipeline monitoring.
 
-![Plugin Hub](assets/plugin-hub.png)
+---
 
-## Quick Start
+## 🧭 The 11-Tab Interface
+
+The interface consolidates 18 legacy panels into 11 streamlined surfaces with responsive tab navigation, mobile drawer support, keyboard shortcuts (`1`–`9`, `0`), and five themes (including *Hermes Teal*, *Neural Awakening*, and *fsociety*).
+
+| Surface | Tab ID | What it monitors |
+|---|---|---|
+| **Executive Dashboard** | `dashboard` | Ops console: token spend pulse, unified **Needs Attention** feed, top model usage, and live services status. |
+| **Costs & Subscriptions v2** | `token-costs` | Exact provider/model pricing matching, canonical cache & reasoning token accounting, live provider balances, and subscription allowances. |
+| **Debrid Pipeline** | `debrid` | Real-time cloud debrid status (Premiumize, TorBox, DebridLink) with interactive D3 pipeline flow diagrams. |
+| **Music Pipeline** | `music` | Media acquisition tracking across Lidarr queues, Transmission torrents, and Nicotine+ Soulseek transfers with import history charts. |
+| **Services & Health** | `services` | Live health diagnostics, systemd daemons, background watchers, and container fleet health. |
+| **Cron Scheduling** | `cron` | Active Hermes scheduled jobs, timers, execution history, and error logs. |
+| **Sessions & Replay** | `sessions` | Deep session inspection with normalized timelines and **Hermes Replay** (redacted, shareable proof artifacts). |
+| **Memory & Corrections** | `memory` | Long-term episodic memory pages, user profile facts, and behavioral correction rules. |
+| **Skills Registry** | `skills` | Agent skill catalog with category breakdown, usage counts, and drill-down inspection modals. |
+| **Agent Subsystems** | `agents` | Multi-agent session trees, model routing, and subagent delegation status. |
+| **System Diagnostics** | `system` | Host resource utilization, gateway managed tools, and runtime configurations. |
+
+---
+
+## 📸 Screenshots
+
+| Executive Dashboard | Costs & Model Analytics |
+|:---:|:---:|
+| ![Executive Dashboard](assets/dashboard-executive.png) | ![Model Analytics](assets/model-analytics.png) |
+
+| Gateway Managed Tools | Plugin Management |
+|:---:|:---:|
+| ![Gateway Tools](assets/gateway-tools.png) | ![Plugin Hub](assets/plugin-hub.png) |
+
+| Replay & Safe Share | Responsive Navigation |
+|:---:|:---:|
+| ![Hermes Replay](assets/replay-tab.png) | ![Responsive Tabs](assets/responsive-tabs.png) |
+
+---
+
+## 🏛️ Architecture & Deployment
+
+Hermes HUD is designed to run in two primary modes:
+
+### 1. Local Machine Mode
+Runs directly on the host alongside the agent daemon:
+- Reads state directly from `~/.hermes/` (`state.db`, `config.yaml`, session JSONL transcripts).
+- Broadcasts real-time filesystem updates over WebSockets.
+
+### 2. Cloud VPS / Remote Production Mode (`hermeshud.com`)
+To prevent heavy analytics queries and full-table scans from consuming host resources, production deployments use the **hybrid remote architecture**:
+
+```
+Browser → https://hermeshud.com
+    │
+    ▼
+Cloudflare Access (Zero Trust PIN authentication)
+    │
+    ▼
+Cloudflare Tunnel (cloudflared)
+    │
+    ▼
+DigitalOcean VPS (FastAPI + Built React Static Assets)
+    ├── /root/.hermes/          ← Local hybrid replica
+    ├── /root/.hermes-mnt/      ← Read-only sshfs mount of server ~/.hermes
+    └── Hourly hermes-sync      ← Consistent SQLite backup API snapshot + hot directories
+```
+
+- **Read-Only v2 Posture:** All write-capable routes (`POST`, `PUT`, `DELETE`, `PATCH`) are stripped from the API, and a global ASGI middleware enforces `405 Method Not Allowed` on any mutation.
+- **Event-Loop Protection:** Filesystem watchers are bypassed (`HUD_NO_WATCH=1`) over network mounts to eliminate event-loop starvation.
+- **Optimized Analytical Queries:** Sub-second response times via single-flight caching, covering indexes (`idx_hud_*`), and capped session detail scans.
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+ (for building frontend)
+- A running Hermes agent or `~/.hermes/` data directory
+
+### Setup
 
 ```bash
-git clone https://github.com/joeynyc/hermes-hudui.git
-cd hermes-hudui
+git clone https://github.com/rudysanchez-mfb/hermes-hud.git
+cd hermes-hud
 ./install.sh
 hermes-hudui
 ```
 
-Open http://localhost:3001
-
-**Requirements:** Python 3.11+, Node.js 18+, a running Hermes agent with data in `~/.hermes/`
+Open `http://localhost:3001` in your browser.
 
 On future runs:
 ```bash
-source venv/bin/activate && hermes-hudui
+source venv/bin/activate
+hermes-hudui
 ```
-
-## What's Inside
-
-18 tabs covering everything your agent knows about itself — executive dashboard, identity, memory, skills, sessions, cron jobs, projects, health diagnostics, costs, model analytics, patterns, corrections, sudo governance, live chat, connected OAuth providers, gateway control, plugin management, and live model capabilities.
-
-The Dashboard opens with an executive summary: health, spend pulse, top model, provider/gateway risk, highest-cost session, and action items. Health reacts to filesystem and WebSocket updates, while expensive refresh paths stay throttled.
-
-Gateway visibility includes managed-tool routing for web search, image generation, text-to-speech, and browser automation. You can see whether each tool is routed through Nous Tool Gateway, a direct key, or is unavailable. The `Update hermes` action is deliberately two-click and shows last-run logs/status.
-
-The Plugin Hub shows installed dashboard and agent plugins, extension entry points, runtime status, required auth commands, and safe enable/disable/update actions.
-
-Updates in real time via WebSocket. No manual refresh needed.
-
-## Hermes Replay
-
-Hermes Replay turns agent runs into redacted, shareable proof artifacts.
-
-![Hermes Replay tab](assets/replay-tab.png)
-
-Open the Replay tab, choose a Hermes session, inspect the normalized timeline, review the run receipt, and export static artifacts for sharing or attaching to issues and PRs. The MVP exporter writes local files under `~/.hermes-hud/replays/` and does not upload anything by default.
-
-Current local exports:
-
-- Redacted JSON replay
-- GitHub-ready Markdown
-- Standalone HTML replay
-- 1200 x 630 PNG share card
-- Fork-safe `fork.json`
-
-An example sanitized payload is included at [`assets/example-replay.redacted.json`](assets/example-replay.redacted.json).
-
-Safe Share Mode is the default export posture. It redacts raw tool arguments, terminal output, assistant reasoning, token-like values, emails, local paths, and other sensitive fields before writing share artifacts. Exports include local hashes and Ed25519 signatures generated on this machine; they prove local artifact integrity, not external third-party attestation.
-
-## Language Support
-
-English (default) and Chinese. Click the language toggle at the far right of the header bar to switch. The choice persists to localStorage. When set to Chinese, chat responses from your agent also come back in Chinese.
-
-## Themes
-
-Five themes switchable with `t`: **Neural Awakening** (cyan), **Hermes Teal** (official Nous dashboard palette), **Blade Runner** (amber), **fsociety** (green), **Anime** (purple). Optional CRT scanlines.
-
-The top tab bar is responsive: resize the browser and tabs stay reachable through horizontal scrolling, with the active tab kept in view.
-
-## Keyboard Shortcuts
-
-| Key | Action |
-|-----|--------|
-| `1`–`9`, `0` | Switch tabs |
-| `t` | Theme picker |
-| `Ctrl+K` | Command palette |
-
-## Relationship to the TUI
-
-This is the browser companion to [hermes-hud](https://github.com/joeynyc/hermes-hud). Both read from the same `~/.hermes/` data directory independently — use either one, or both at the same time.
-
-The Web UI is fully standalone and adds features the TUI doesn't have: dedicated Memory, Skills, Sessions, Replay, Health, Providers, Gateway, Model, and Plugins tabs; per-model token and cost analytics; gateway managed-tool visibility; actionable diagnostics; command palette; live chat; theme switcher.
-
-If you also have the TUI installed, you can enable it with `pip install 'hermes-hudui[tui]'`.
-
-(Quotes around `'hermes-hudui[tui]'` are required in zsh, where the unquoted `[tui]` is interpreted as a glob pattern. Bash and fish accept the unquoted form, but the quoted form is safe everywhere.)
-
-## Platform Support
-
-macOS · Linux · WSL
-
-## License
-
-MIT — see [LICENSE](LICENSE).
 
 ---
 
-<a href="https://www.star-history.com/?repos=joeynyc%2Fhermes-hudui&type=date&logscale=&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=joeynyc/hermes-hudui&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=joeynyc/hermes-hudui&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=joeynyc/hermes-hudui&type=date&legend=top-left" />
- </picture>
-</a>
+## 🔒 Hermes Replay & Safe Share
+
+Hermes Replay turns agent runs into redacted, shareable proof artifacts:
+- Normalized execution timelines with per-tool execution telemetry.
+- **Safe Share Mode:** Automatically redacts raw tool arguments, terminal stdout, assistant reasoning traces, API tokens, local paths, and email addresses.
+- Exports to standalone HTML, Markdown, or JSON.
+
+---
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) and [NOTICE](NOTICE) for details.
