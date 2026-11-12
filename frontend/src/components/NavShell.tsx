@@ -12,6 +12,12 @@ import { useTheme, THEMES } from '../hooks/useTheme'
 import { useI18n } from '../i18n'
 import { useState, useEffect, useCallback } from 'react'
 
+const MFB_LINKS = [
+  { label: 'MFB Labs', href: 'https://labs.mfbservicesinc.com' },
+  { label: 'GitHub', href: 'https://github.com/rudysanchez-mfb' },
+  { label: 'LinkedIn', href: 'https://www.linkedin.com/in/rudy10sanchez/' },
+]
+
 const TOP_5 = ['dashboard', 'token-costs', 'debrid', 'music', 'services']
 
 interface NavShellProps {
@@ -185,6 +191,24 @@ export default function NavShell({ activeTab, onTabChange }: NavShellProps) {
             </ListItemButton>
           ))}
         </List>
+        <Divider />
+        <List dense>
+          {MFB_LINKS.map(link => (
+            <ListItemButton
+              key={link.href}
+              component="a"
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{ py: 0.5 }}
+            >
+              <ListItemText
+                primary={`${link.label} ↗`}
+                slotProps={{ primary: { variant: 'caption', color: 'text.secondary' } }}
+              />
+            </ListItemButton>
+          ))}
+        </List>
       </SwipeableDrawer>
 
       {/* ── Mobile bottom nav ── */}
@@ -237,6 +261,20 @@ export default function NavShell({ activeTab, onTabChange }: NavShellProps) {
         <MenuItem dense onClick={() => { setScanlines(!scanlines); setThemeAnchor(null) }}>
           {scanlines ? '▣' : '□'} {t('theme.scanlines')}
         </MenuItem>
+        <Divider />
+        {MFB_LINKS.map(link => (
+          <MenuItem
+            key={link.href}
+            dense
+            component="a"
+            href={link.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setThemeAnchor(null)}
+          >
+            {link.label} ↗
+          </MenuItem>
+        ))}
       </Menu>
     </>
   )
